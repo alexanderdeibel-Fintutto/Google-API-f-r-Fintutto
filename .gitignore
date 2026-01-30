@@ -20,3 +20,33 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+
+### Supabase ###
+# Local Supabase files
+.supabase/
+
+### Environment Variables ###
+.env
+.env.local
+.env.*.local
+supabase/functions/.env
+
+### IDE ###
+.idea/
+*.swp
+*.swo
+*~
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Node ###
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### Logs ###
+logs/
+*.log
