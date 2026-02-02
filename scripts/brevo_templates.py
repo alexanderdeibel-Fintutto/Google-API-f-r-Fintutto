@@ -30,14 +30,18 @@ HEADERS = {
 }
 
 # ============================================================================
-# ABSENDER
+# ABSENDER - Vorübergehend alle auf fintutto.de (bis andere Domains verifiziert)
 # ============================================================================
 
+# Ändere diese E-Mail auf deine verifizierte Absender-Adresse
+DEFAULT_SENDER_EMAIL = "info@fintutto.de"
+DEFAULT_SENDER_NAME = "FinTuttO"
+
 SENDERS = {
-    "fintutto": {"email": "info@fintutto.de", "name": "FinTuttO"},
-    "vermietify": {"email": "info@vermietify.de", "name": "Vermietify"},
-    "mieterapp": {"email": "info@mieterapp.de", "name": "MieterApp"},
-    "hausmeisterpro": {"email": "info@hausmeisterpro.de", "name": "HausmeisterPro"},
+    "fintutto": {"email": DEFAULT_SENDER_EMAIL, "name": DEFAULT_SENDER_NAME},
+    "vermietify": {"email": DEFAULT_SENDER_EMAIL, "name": "Vermietify by FinTuttO"},
+    "mieterapp": {"email": DEFAULT_SENDER_EMAIL, "name": "MieterApp by FinTuttO"},
+    "hausmeisterpro": {"email": DEFAULT_SENDER_EMAIL, "name": "HausmeisterPro by FinTuttO"},
 }
 
 # ============================================================================
