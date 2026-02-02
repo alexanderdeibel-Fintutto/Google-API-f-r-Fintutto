@@ -2,7 +2,7 @@
 // PERSONAS CONFIGURATION - FinTuttO
 // ============================================================================
 
-import { Persona, PersonaCode } from '../types/brevo.ts';
+import { Persona, PersonaCode, ProductTier } from '../types/brevo.ts';
 
 export const PERSONAS: Record<PersonaCode, Persona> = {
   // Vermietify - Vermieter Personas
@@ -58,14 +58,40 @@ export const PERSONAS: Record<PersonaCode, Persona> = {
     onboardingEvent: 'onboarding_mieter_selbst',
   },
 
-  // B2B Personas
+  // HausmeisterPro - Tiers
   C1: {
     code: 'C1',
-    name: 'Hausmeister-Hans',
-    description: 'Facility Manager',
+    name: 'Hausmeister (allgemein)',
+    description: 'Hausmeister ohne Tier-Zuordnung',
     product: 'hausmeisterpro',
     onboardingEvent: 'onboarding_hausmeister',
   },
+  'C1-GO': {
+    code: 'C1-GO',
+    name: 'Hausmeister GO',
+    description: 'Angestellter Hausmeister',
+    product: 'hausmeisterpro',
+    onboardingEvent: 'onboarding_hausmeister_go',
+    tier: 'go',
+  },
+  'C1-PRO': {
+    code: 'C1-PRO',
+    name: 'Hausmeister PRO',
+    description: 'Selbständiger Hausmeister',
+    product: 'hausmeisterpro',
+    onboardingEvent: 'onboarding_hausmeister_pro',
+    tier: 'pro',
+  },
+  'C1-ENT': {
+    code: 'C1-ENT',
+    name: 'Hausmeister Enterprise',
+    description: 'Facility Management Firma',
+    product: 'hausmeisterpro',
+    onboardingEvent: 'onboarding_hausmeister_ent',
+    tier: 'enterprise',
+  },
+
+  // B2B Partners
   C2: {
     code: 'C2',
     name: 'StB-Sabine',
@@ -122,11 +148,19 @@ export function determinePersona(attributes: {
   isTenant?: boolean;
   userType?: string;
   source?: string;
+  employmentType?: 'employed' | 'self-employed' | 'company';
 }): PersonaCode {
-  const { objectsCount = 0, age, isInvited, isTenant, userType, source } = attributes;
+  const { objectsCount = 0, age, isInvited, isTenant, userType, source, employmentType } = attributes;
 
-  // B2B Users
-  if (userType === 'hausmeister') return 'C1';
+  // HausmeisterPro - with tier differentiation
+  if (userType === 'hausmeister') {
+    if (employmentType === 'employed') return 'C1-GO';
+    if (employmentType === 'self-employed') return 'C1-PRO';
+    if (employmentType === 'company') return 'C1-ENT';
+    return 'C1'; // Default without tier
+  }
+
+  // B2B Partners
   if (userType === 'steuerberater') return 'C2';
   if (userType === 'makler') return 'C3';
 
@@ -161,4 +195,44 @@ export function determinePersona(attributes: {
 
   // Default
   return 'P01';
+}
+
+/**
+ * Determine HausmeisterPro tier based on attributes
+ */
+export function determineHausmeisterTier(attributes: {
+  employmentType?: 'employed' | 'self-employed' | 'company';
+  employeeCount?: number;
+  objectsCount?: number;
+}): PersonaCode {
+  const { employmentType, employeeCount = 0, objectsCount = 0 } = attributes;
+
+  // Explicit employment type
+  if (employmentType === 'employed') return 'C1-GO';
+  if (employmentType === 'self-employed') return 'C1-PRO';
+  if (employmentType === 'company') return 'C1-ENT';
+
+  // Infer from employee count
+  if (employeeCount > 0) return 'C1-ENT';
+
+  // Infer from objects count
+  if (objectsCount > 20) return 'C1-ENT';
+  if (objectsCount > 5) return 'C1-PRO';
+
+  // Default to GO (basic tier)
+  return 'C1-GO';
+}
+
+/**
+ * Get all personas for a specific tier
+ */
+export function getPersonasByTier(tier: ProductTier): Persona[] {
+  return Object.values(PERSONAS).filter((p) => p.tier === tier);
+}
+
+/**
+ * Get tier from persona code
+ */
+export function getTierFromPersona(code: PersonaCode): ProductTier | undefined {
+  return PERSONAS[code]?.tier;
 }

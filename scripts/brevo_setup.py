@@ -39,17 +39,24 @@ HEADERS = {
 # ============================================================================
 
 PERSONAS = {
+    # Vermietify - Vermieter Personas
     "P01": {"name": "Starter Stefan", "desc": "1 Objekt, Neuling", "product": "vermietify"},
     "P02": {"name": "Hobby-Heike", "desc": "2-5 Objekte, Nebentätigkeit", "product": "vermietify"},
     "P03": {"name": "Profi-Paul", "desc": "6-30 Objekte, Portfolio", "product": "vermietify"},
     "P04": {"name": "Senior-Siegfried", "desc": "65+, Komfort", "product": "vermietify"},
-    "P05": {"name": "Investor-Ingo", "desc": "Kaufinteressent", "product": "rechner"},
+    "D1": {"name": "Erbin-Emma", "desc": "Frisch geerbt", "product": "vermietify"},
+    # Rechner/Leads
+    "P05": {"name": "Investor-Ingo", "desc": "Kaufinteressent via Rechner", "product": "rechner"},
+    # MieterApp - Mieter Personas
     "P09": {"name": "Mieter (eingeladen)", "desc": "Vom Vermieter eingeladen", "product": "mieterapp"},
     "P10": {"name": "Mieter (selbst)", "desc": "Selbst registriert", "product": "mieterapp"},
-    "C1": {"name": "Hausmeister-Hans", "desc": "Facility Manager", "product": "hausmeisterpro"},
+    # HausmeisterPro - Tiers
+    "C1-GO": {"name": "Hausmeister GO", "desc": "Angestellter Hausmeister", "product": "hausmeisterpro"},
+    "C1-PRO": {"name": "Hausmeister PRO", "desc": "Selbständiger Hausmeister", "product": "hausmeisterpro"},
+    "C1-ENT": {"name": "Hausmeister Enterprise", "desc": "Facility Management Firma", "product": "hausmeisterpro"},
+    # B2B Partners
     "C2": {"name": "StB-Sabine", "desc": "Steuerberater", "product": "stb_portal"},
     "C3": {"name": "Makler-Marco", "desc": "Immobilienmakler", "product": "makler_portal"},
-    "D1": {"name": "Erbin-Emma", "desc": "Frisch geerbt", "product": "vermietify"},
 }
 
 # ============================================================================
@@ -57,20 +64,32 @@ PERSONAS = {
 # ============================================================================
 
 ATTRIBUTES = [
+    # Core Attributes
     {"name": "PERSONA", "category": "normal", "type": "text"},
     {"name": "PRODUCT", "category": "normal", "type": "text"},
+    {"name": "TIER", "category": "normal", "type": "text"},  # go, pro, enterprise
+    # Subscription Attributes
     {"name": "SUBSCRIPTION_STATUS", "category": "normal", "type": "text"},
     {"name": "SUBSCRIPTION_PLAN", "category": "normal", "type": "text"},
+    {"name": "TRIAL_END_DATE", "category": "normal", "type": "date"},
+    # Usage Attributes
     {"name": "OBJECTS_COUNT", "category": "normal", "type": "float"},
     {"name": "TENANTS_COUNT", "category": "normal", "type": "float"},
+    {"name": "TASKS_COUNT", "category": "normal", "type": "float"},  # For HausmeisterPro
+    {"name": "EMPLOYEE_COUNT", "category": "normal", "type": "float"},  # For Enterprise
+    # Activity Attributes
     {"name": "REGISTRATION_DATE", "category": "normal", "type": "date"},
     {"name": "LAST_LOGIN", "category": "normal", "type": "date"},
     {"name": "EMAIL_VERIFIED", "category": "normal", "type": "boolean"},
-    {"name": "TRIAL_END_DATE", "category": "normal", "type": "date"},
+    # Referral Attributes
     {"name": "REFERRAL_CODE", "category": "normal", "type": "text"},
     {"name": "REFERRED_BY", "category": "normal", "type": "text"},
+    # Lead Attributes
     {"name": "CALCULATOR_TYPE", "category": "normal", "type": "text"},
     {"name": "LEAD_SOURCE", "category": "normal", "type": "text"},
+    # Employment (HausmeisterPro)
+    {"name": "EMPLOYMENT_TYPE", "category": "normal", "type": "text"},  # employed, self-employed, company
+    # Other
     {"name": "LANGUAGE", "category": "normal", "type": "text"},
 ]
 
@@ -224,6 +243,7 @@ def main():
     print()
 
     lifecycle_lists = [
+        # Trial & Subscription Lifecycle
         "Trial - Aktiv",
         "Trial - Endet bald (3 Tage)",
         "Trial - Abgelaufen",
@@ -231,10 +251,25 @@ def main():
         "Abo - Gekündigt",
         "Abo - Win-Back (30 Tage)",
         "Abo - Win-Back (90 Tage)",
+        # Inactivity
         "Inaktiv - 14 Tage",
         "Inaktiv - 30 Tage",
-        "Leads - Rechner",
+        # Leads
+        "Leads - Rechner Rendite",
+        "Leads - Rechner Nebenkosten",
+        "Leads - Rechner Mietspiegel",
+        "Leads - Rechner Mieterhöhung",
         "Leads - Newsletter",
+        # HausmeisterPro Tier-specific
+        "HausmeisterPro - GO Trial",
+        "HausmeisterPro - GO Aktiv",
+        "HausmeisterPro - PRO Trial",
+        "HausmeisterPro - PRO Aktiv",
+        "HausmeisterPro - Enterprise Leads",
+        "HausmeisterPro - Enterprise Aktiv",
+        # Upgrades
+        "Upgrade - GO to PRO",
+        "Upgrade - PRO to Enterprise",
     ]
 
     fintutto_folder = folders.get("FinTuttO")

@@ -7,17 +7,27 @@
 // ----------------------------------------------------------------------------
 
 export type PersonaCode =
-  | 'P01' // Starter Stefan
-  | 'P02' // Hobby-Heike
-  | 'P03' // Profi-Paul
-  | 'P04' // Senior-Siegfried
-  | 'P05' // Investor-Ingo
+  // Vermietify - Vermieter Personas
+  | 'P01' // Starter Stefan - 1 Objekt, Neuling
+  | 'P02' // Hobby-Heike - 2-5 Objekte, Nebentätigkeit
+  | 'P03' // Profi-Paul - 6-30 Objekte, Portfolio
+  | 'P04' // Senior-Siegfried - 65+, Komfort
+  | 'P05' // Investor-Ingo - Kaufinteressent via Rechner
+  // MieterApp - Mieter Personas
   | 'P09' // Mieter (eingeladen)
-  | 'P10' // Mieter (selbst)
-  | 'C1'  // Hausmeister-Hans
-  | 'C2'  // StB-Sabine
-  | 'C3'  // Makler-Marco
-  | 'D1'; // Erbin-Emma
+  | 'P10' // Mieter (selbst registriert)
+  // HausmeisterPro - Tiers
+  | 'C1'     // Hausmeister (general)
+  | 'C1-GO'  // Angestellter Hausmeister
+  | 'C1-PRO' // Selbständiger Hausmeister
+  | 'C1-ENT' // Facility Management Firma
+  // B2B Partners
+  | 'C2'  // StB-Sabine - Steuerberater
+  | 'C3'  // Makler-Marco - Immobilienmakler
+  // Special Personas
+  | 'D1'; // Erbin-Emma - Frisch geerbt
+
+export type ProductTier = 'go' | 'pro' | 'enterprise';
 
 export interface Persona {
   code: PersonaCode;
@@ -25,6 +35,7 @@ export interface Persona {
   description: string;
   product: 'vermietify' | 'mieterapp' | 'hausmeisterpro' | 'rechner' | 'stb_portal' | 'makler_portal';
   onboardingEvent: string;
+  tier?: ProductTier;
 }
 
 // ----------------------------------------------------------------------------
@@ -175,26 +186,41 @@ export interface TrackEventRequest {
 // ----------------------------------------------------------------------------
 
 export type AutomationEvent =
-  | 'onboarding_erstvermieter'
-  | 'onboarding_privatvermieter'
-  | 'onboarding_portfolio'
-  | 'onboarding_senior'
-  | 'onboarding_investor'
-  | 'onboarding_mieter_eingeladen'
-  | 'onboarding_mieter_selbst'
-  | 'onboarding_hausmeister'
-  | 'onboarding_steuerberater'
-  | 'onboarding_makler'
-  | 'onboarding_erbin'
+  // Vermietify Onboarding (by persona)
+  | 'onboarding_erstvermieter'      // P01
+  | 'onboarding_privatvermieter'    // P02
+  | 'onboarding_portfolio'          // P03
+  | 'onboarding_senior'             // P04
+  | 'onboarding_investor'           // P05
+  | 'onboarding_erbin'              // D1
+  // MieterApp Onboarding
+  | 'onboarding_mieter_eingeladen'  // P09
+  | 'onboarding_mieter_selbst'      // P10
+  // HausmeisterPro Onboarding (by tier)
+  | 'onboarding_hausmeister'        // C1 (general)
+  | 'onboarding_hausmeister_go'     // C1-GO (angestellt)
+  | 'onboarding_hausmeister_pro'    // C1-PRO (selbständig)
+  | 'onboarding_hausmeister_ent'    // C1-ENT (Firma)
+  // B2B Onboarding
+  | 'onboarding_steuerberater'      // C2
+  | 'onboarding_makler'             // C3
+  // Lifecycle Events
   | 'email_verified'
   | 'trial_ending'
+  | 'trial_ended'
+  | 'subscription_created'
   | 'subscription_cancelled'
+  | 'subscription_upgraded'
   | 'user_inactive_14days'
+  | 'user_inactive_30days'
+  // Limit Events
   | 'limit_objects_reached'
   | 'limit_ki_reached'
+  // Calculator/Lead Events
   | 'calculator_rendite_used'
   | 'calculator_nebenkosten_used'
-  | 'calculator_mietspiegel_used';
+  | 'calculator_mietspiegel_used'
+  | 'calculator_mieterhoehung_used';
 
 // ----------------------------------------------------------------------------
 // API Action Types
