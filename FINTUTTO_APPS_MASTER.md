@@ -1,325 +1,705 @@
 # FINTUTTO APP-PORTFOLIO - MASTER DOKUMENTATION
 
 > Erstellt: 2026-02-02
+> Basierend auf: A-Docs (offizielle Fintutto-Dokumentation)
 > Ziel: Migration von Base44 zu Lovable
 
 ---
 
-## 🎨 EINHEITLICHES DESIGN-SYSTEM
+## TEIL 1: FINTUTTO DESIGN SYSTEM
 
-### Fintutto Farbschema (ALLE Apps)
+### 1.1 Die 6 Ring-Farben (Kategorien)
+
+Das Fintutto-Logo besteht aus 6 farbigen Ringen. Jede Farbe steht fuer eine Kategorie:
+
+| Kategorie | Farbe | HEX | RGB | Pantone |
+|-----------|-------|-----|-----|---------|
+| **Immobilien** | Blau | `#2563EB` | RGB(37, 99, 235) | Blue 072 C |
+| **Mieter** | Tuerkis | `#06B6D4` | RGB(6, 182, 212) | 3115 C |
+| **Dokumente** | Gruen | `#10B981` | RGB(16, 185, 129) | 3395 C |
+| **Vermoegen** | Gelb | `#EAB308` | RGB(234, 179, 8) | 7549 C |
+| **Finanzen** | Orange | `#F97316` | RGB(249, 115, 22) | Orange 021 C |
+| **Steuer** | Lila | `#8B5CF6` | RGB(139, 92, 246) | 2665 C |
+
+### 1.2 Design Tokens (UI-Elemente)
+
 ```css
-/* Primärfarben - Dunkelblau */
---ft-primary: #1E3A8A       /* Dunkelblau */
---ft-primary-hover: #1E40AF
---ft-primary-light: #3B82F6
+:root {
+  /* ═══════════════════════════════════════════════════════════════════
+     BRAND COLORS - FinTuttO Hauptfarben
+     ═══════════════════════════════════════════════════════════════════ */
 
-/* Akzentfarben - Gold/Orange */
---ft-accent: #D4AF37        /* Gold */
---ft-accent-hover: #B8972E
---ft-accent-light: #F59E0B  /* Orange */
+  --ft-primary: #4F46E5;           /* Indigo - Hauptfarbe */
+  --ft-primary-hover: #4338CA;     /* Indigo dunkel - Hover */
+  --ft-primary-light: #818CF8;     /* Indigo hell - Backgrounds */
+  --ft-primary-50: #EEF2FF;        /* Indigo sehr hell - Subtle BG */
 
-/* Funktionale Farben */
---ft-success: #10B981       /* Grün */
---ft-warning: #F59E0B       /* Orange */
---ft-danger: #EF4444        /* Rot */
---ft-info: #3B82F6          /* Blau */
+  --ft-secondary: #7C3AED;         /* Violett - Akzent */
+  --ft-secondary-hover: #6D28D9;
+  --ft-secondary-light: #A78BFA;
 
-/* Neutrale */
---ft-background: #FFFFFF
---ft-foreground: #111827
---ft-muted: #6B7280
---ft-border: #E5E7EB
+  /* ═══════════════════════════════════════════════════════════════════
+     SEMANTIC COLORS - Bedeutungsfarben
+     ═══════════════════════════════════════════════════════════════════ */
+
+  /* Erfolg / Positiv */
+  --ft-success: #10B981;           /* Gruen */
+  --ft-success-hover: #059669;
+  --ft-success-light: #D1FAE5;
+  --ft-success-text: #065F46;
+
+  /* Warnung / Neutral */
+  --ft-warning: #F59E0B;           /* Orange */
+  --ft-warning-hover: #D97706;
+  --ft-warning-light: #FEF3C7;
+  --ft-warning-text: #92400E;
+
+  /* Fehler / Negativ */
+  --ft-danger: #EF4444;            /* Rot */
+  --ft-danger-hover: #DC2626;
+  --ft-danger-light: #FEE2E2;
+  --ft-danger-text: #991B1B;
+
+  /* Info / Neutral */
+  --ft-info: #3B82F6;              /* Blau */
+  --ft-info-hover: #2563EB;
+  --ft-info-light: #DBEAFE;
+  --ft-info-text: #1E40AF;
+
+  /* ═══════════════════════════════════════════════════════════════════
+     NEUTRAL COLORS - Graustufen
+     ═══════════════════════════════════════════════════════════════════ */
+
+  --ft-gray-50: #F9FAFB;
+  --ft-gray-100: #F3F4F6;
+  --ft-gray-200: #E5E7EB;
+  --ft-gray-300: #D1D5DB;
+  --ft-gray-400: #9CA3AF;
+  --ft-gray-500: #6B7280;
+  --ft-gray-600: #4B5563;
+  --ft-gray-700: #374151;
+  --ft-gray-800: #1F2937;
+  --ft-gray-900: #111827;
+
+  --ft-white: #FFFFFF;
+  --ft-black: #000000;
+
+  /* ═══════════════════════════════════════════════════════════════════
+     BEWERTUNGS-FARBEN - Fuer Ampel-System
+     ═══════════════════════════════════════════════════════════════════ */
+
+  --ft-rating-excellent: #10B981;  /* Hervorragend - Gruen */
+  --ft-rating-good: #22C55E;       /* Gut - Hellgruen */
+  --ft-rating-ok: #F59E0B;         /* OK - Orange */
+  --ft-rating-weak: #F97316;       /* Schwach - Dunkelorange */
+  --ft-rating-bad: #EF4444;        /* Schlecht - Rot */
+
+  /* ═══════════════════════════════════════════════════════════════════
+     KOMPONENTEN-SPEZIFISCHE TOKENS
+     ═══════════════════════════════════════════════════════════════════ */
+
+  --ft-hero-gradient: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  --ft-hero-text: #FFFFFF;
+
+  --ft-card-bg: var(--ft-white);
+  --ft-card-border: var(--ft-gray-200);
+  --ft-card-radius: 12px;
+  --ft-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+  --ft-premium-bg: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+}
 ```
 
-### Typography
-- **Hauptfont**: Inter oder Raleway
-- **Monospace**: JetBrains Mono
+### 1.3 Typografie
+
+```css
+--ft-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+--ft-font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+
+--ft-text-xs: 0.75rem;    /* 12px */
+--ft-text-sm: 0.875rem;   /* 14px */
+--ft-text-base: 1rem;     /* 16px */
+--ft-text-lg: 1.125rem;   /* 18px */
+--ft-text-xl: 1.25rem;    /* 20px */
+--ft-text-2xl: 1.5rem;    /* 24px */
+--ft-text-3xl: 1.875rem;  /* 30px */
+--ft-text-4xl: 2.25rem;   /* 36px */
+```
 
 ---
 
-## 📱 APP 1: VERMIETIFY (ft_vermietify)
+## TEIL 2: ZENTRALE INFRASTRUKTUR
 
-### Übersicht
-- **Typ**: Enterprise Vermietungs-Plattform
-- **Seiten**: 631
-- **Zielgruppe**: Vermieter, Immobilienmanager
-- **Komplexität**: ⭐⭐⭐⭐⭐ (Sehr hoch)
+### 2.1 Supabase
 
-### Kernmodule
+| Setting | Wert |
+|---------|------|
+| Projekt-Name | Fintutto (User-Hub) |
+| Projekt-Ref | `aaefocdqgdgexkcrjhks` |
+| API URL | `https://aaefocdqgdgexkcrjhks.supabase.co` |
+| Dashboard | https://supabase.com/dashboard/project/aaefocdqgdgexkcrjhks |
 
-#### 1. Immobilienverwaltung
-- Gebäude & Wohnungen verwalten
-- Grundbuch-Integration
-- Lageplan & Kartendarstellung
+### 2.2 Stripe
 
-#### 2. Mieterverwaltung
-- Mieterdatenbank
-- Mietverträge (Erstellung, Analyse, Verwaltung)
-- Mieter-Self-Service-Portal
+| Setting | Wert |
+|---------|------|
+| Dashboard | https://dashboard.stripe.com |
+| Live-Webhook-ID | `we_1Sr5mS52lqSgjCzeRjXXHmP2` |
 
-#### 3. Finanzmanagement
-- Bankkonten-Anbindung (FinAPI)
-- Transaktionsverwaltung
-- Cashflow-Analyse
-- Budget-Planung
+### 2.3 Domains (bei Strato.de)
 
-#### 4. Steueroptimierung (DACH)
-- Deutschland: Anlage V, Anlage KAP, Anlage SO
-- Österreich: E1a, E1b, E1c
-- Schweiz: Steuererklärung Liegenschaften
-- AI-Steuerberater
-- ELSTER-Export
+**Zentrale Plattform:**
+- `fintutto.cloud` - App-Plattform
+- `fintutto.de` - Corporate Website
+- `fintutto.info` - Dokumentation
 
-#### 5. Betriebskosten
-- NK-Abrechnung
-- Umlageschlüssel
-- Heizkosten-Verordnung
+**Haupt-Apps:**
+- `vermietify.de` - Vermieter-App
+- `hausmeisterpro.de` - Hausmeister-App
+- `zaehlerstand.app` - Zaehler-App
 
-#### 6. KI-Features (12+ Tools)
-- BelegScanner (OCR)
-- BuchungsKategorisierer
-- SteuerOptimierer
-- VertragsAnalyse
-- MietpreisCheck
-- EnergieAusweis-Analyse
-
-#### 7. Kommunikation
-- Messaging-Hub
-- WhatsApp-Integration
-- Bulk-Nachrichten
-- Email-Vorlagen
-
-### Tech-Stack (Original)
-- React 18.2 + Vite
-- Tailwind CSS + Radix UI
-- Supabase (PostgreSQL)
-- Firebase Cloud Functions
-- Stripe Payments
+**SEO-Domains (Rechner):**
+- `mietrendite.de`, `kaufpreis.de`, `kaufnebenkosten.de`, `tilgungsplan.de`
+- `eigenkapital.de`, `nebenkosten.de`, `mietspiegel.de`, `mieterhoehung.de`
+- `mietkaution.de`, `indexmiete.de`, `kuendigungsfrist.de`, `afa-rechner.de`
 
 ---
 
-## 📱 APP 2: FORMULARE (ft_fromulare_alle)
+## TEIL 3: HAUPT-APPS
 
-### Übersicht
-- **Typ**: Deutsche Mietrecht-Formulare
-- **Seiten**: 277
-- **Zielgruppe**: Vermieter, Mieter, Makler
-- **Komplexität**: ⭐⭐⭐⭐ (Hoch)
+### 3.1 VERMIETIFY - Vermieter-App
 
-### Formular-Kategorien
+| Setting | Wert |
+|---------|------|
+| Base44 App-ID | `694ec0b3e6d09c2e6b8e0485` |
+| Hauptfarbe | `#2563EB` (Blau) |
+| Zielgruppe | Private Vermieter (5,5 Mio. in DE) |
+| Domain | fintutto.cloud/vermietify |
 
-#### Mietverträge
-- Standard-Mietvertrag
-- Staffelmietvertrag
-- Möblierter Mietvertrag
-- WG-Mietvertrag
-- Gewerbemietvertrag
-- Untermietvertrag
+**Stripe-Produkte:**
+- Starter (Free): 0 EUR/Monat
+- Basic: 9,99 EUR/Monat
+- Pro: 29,00 EUR/Monat
+- Business: 89,00 EUR/Monat
 
-#### Kündigungen
-- Mieter-Kündigung
-- Vermieter-Kündigung
-- Sonderkündigung
-- Kündigungswiderspruch
-
-#### Abrechnungen
+**Features:**
+- Immobilienverwaltung (Gebaeude, Wohnungen)
+- Mieterverwaltung & Vertraege
+- Finanzmanagement (Bankkonten, Transaktionen)
 - Nebenkostenabrechnung
-- Heizkostenabrechnung
-- Betriebskostenabrechnung
-
-#### Protokolle
-- Übergabeprotokoll
-- Schönheitsreparatur-Protokoll
-- Mängelprotokoll
-
-#### Weitere Formulare
-- Mieterhöhungsverlangen
-- Mietminderung
-- Mieterselbstauskunft
-- Mietbürgschaft
-- Kautionsvereinbarung
-- Hausordnung
-
-### Rechner-Tools
-- Renditerechner (Brutto/Netto)
-- Finanzierungsrechner
-- Amortisationsrechner
-- Eigenkapitalrentabilität
-- Kaufnebenkosten-Rechner
-- Indexmiet-Rechner
-- CO2-Rechner
-
-### Features
-- PDF-Export aller Formulare
-- Vorlagen-System
-- Dokumenten-Sharing
-- AI-Formular-Builder
+- Steueroptimierung (Anlage V, KAP, SO)
+- KI-Tools (BelegScanner, SteuerOptimierer)
+- Hausmeister-Seats (je nach Plan)
 
 ---
 
-## 📱 APP 3: MIETER (ft_mieter)
+### 3.2 HAUSMEISTERPRO - Hausmeister-App
 
-### Übersicht
-- **Typ**: Mieter-Portal & Community
-- **Seiten**: 193
-- **Zielgruppe**: Mieter
-- **Komplexität**: ⭐⭐⭐⭐ (Hoch)
+| Setting | Wert |
+|---------|------|
+| Base44 App-ID | `696fb16c734074a341d24cf9` |
+| Hauptfarbe | `#059669` (Emerald/Gruen) |
+| Zielgruppe | Hausmeister, Facility Manager |
+| Domain | fintutto.cloud/hausmeister |
 
-### Kernfunktionen
-
-#### Finanzen
-- Mietübersicht
-- Zahlungshistorie
-- Nebenkosten-Einsicht
-- Auto-Pay Setup
-- Rechnungsauszüge
-
-#### Reparaturen & Mängel
-- Schadensmeldung mit Foto
-- Reparatur-Status-Tracking
-- Handwerker-Termine
-
-#### Zählerablesung
-- Strom, Gas, Wasser, Wärme
-- OCR-Kamera-Erfassung
-- Verbrauchshistorie
-- Plausibilitätsprüfung
-
-#### Community
-- Nachbarschaftsforum ("Schwarzes Brett")
-- Events & Veranstaltungen
-- Gruppen & Projekte
-- Marktplatz (Kaufen/Verkaufen/Tauschen)
-
-#### Kommunikation
-- Chat mit Hausverwaltung
-- Chat mit Hausmeister
-- Ankündigungen
-- Push-Benachrichtigungen
-
-#### Weitere Features
-- Dokumentenverwaltung
-- Kalender & Termine
-- Notfall-Kontakte
-- Mietrecht-Info
-
-### Gamification
-- Achievements & Badges
-- Streaks
-- Quick-Start-Challenges
-
----
-
-## 📱 APP 4: NEBENKOSTENABRECHNUNG (ft_nebenkostenabrechnung)
-
-### Übersicht
-- **Typ**: Spezialisierte NK-Abrechnung
-- **Seiten**: 47
-- **Zielgruppe**: Vermieter, Hausverwalter
-- **Komplexität**: ⭐⭐⭐ (Mittel)
-
-### 8-Schritt NK-Wizard
-
-1. **Objekt & Zeitraum**
-   - Gebäude auswählen
-   - Abrechnungszeitraum festlegen
-
-2. **Mietverträge**
-   - Relevante Verträge auswählen
-   - Mieterwechsel berücksichtigen
-
-3. **Betriebskosten**
-   - Kostenarten nach BetrKV
-   - Umlageschlüssel festlegen
-
-4. **Direktkosten**
-   - Mieter-spezifische Kosten
-   - Individuelle Verbräuche
-
-5. **Heizkosten**
-   - Heizkosten-Verordnung
-   - Verbrauch vs. Fläche (30/70, 50/50, etc.)
-
-6. **Ergebnisse**
-   - Berechnung pro Mieter
-   - Nachzahlung/Guthaben
-
-7. **Vorschau**
-   - PDF-Vorschau
-   - Letzte Prüfung
-
-8. **Versand**
-   - Per Email
-   - Per Post (LetterXpress)
-   - Download als PDF
-
-### Features
-- AI-Kostenallokation
-- Automatische Plausibilitätsprüfung
-- DATEV-Export
-- Mieter-Portal Integration
-- Einspruch-Management
-
----
-
-## 📱 APP 5: ADMIN-HUB (ft_admin-hub)
-
-### Status: ⚠️ NOCH NICHT ENTWICKELT
-
-### Geplante Funktionen
-- Zentrales Admin-Dashboard
-- Benutzer- & Rollenverwaltung
-- Organisation-Management
-- Cross-App Einstellungen
-- API-Key-Verwaltung
-- Audit-Logs
-- System-Health-Monitoring
-
----
-
-## 📱 APP 6: HAUSMEISTER (ft_hausmeister)
-
-### Status: ⚠️ NOCH NICHT ENTWICKELT
-
-### Geplante Funktionen
+**Features:**
 - Aufgabenverwaltung
 - Terminkalender
-- Objektrundgänge
+- Objektrundgaenge
 - Reparatur-Tracking
-- Materialverwaltung
 - Zeiterfassung
-- Mieter-Kommunikation
-- Dokumentation mit Fotos
+- Mobile-First, Offline-faehig
+
+**Seat-System (in Vermietify inkludiert):**
+- Vermietify Free/Starter: 0 Seats
+- Vermietify Basic: 1 Seat
+- Vermietify Pro: 2 Seats
+- Vermietify Business: 5 Seats
 
 ---
 
-## 📱 APP 7: OCR ZÄHLER (ft_ocr_zaehler)
+### 3.3 MIETERAPP - Mieter-Portal
 
-### Status: ℹ️ IN FT_MIETER INTEGRIERT
+| Setting | Wert |
+|---------|------|
+| Base44 App-ID | `696feb63b8085b338cf6c4e7` |
+| Hauptfarbe | `#06B6D4` (Tuerkis) |
+| Zielgruppe | Mieter (ueber Vermietify eingeladen) |
+| Domain | fintutto.cloud/mieter |
 
-Die OCR-Zähler-Funktionalität ist Teil der Mieter-App.
-
-### Funktionen
-- Kamera-basierte Zählererfassung
-- AI-OCR mit Konfidenz-Score
-- Manuelle Korrektur
-- Offline-Modus
-- Verbrauchsberechnung
-- Plausibilitätsprüfung
+**Features:**
+- Dashboard mit Mietuebersicht
+- Zahlungshistorie
+- Schadensmeldung mit Foto
+- Zaehlerablesung (OCR)
+- Chat mit Hausverwaltung/Hausmeister
+- Community-Features
+- Dokumentenverwaltung
 
 ---
 
-## 🗄️ GEMEINSAMES SUPABASE-SCHEMA
+### 3.4 FT_FORMULARE - Dokumentvorlagen
 
-### Kern-Tabellen
+| Setting | Wert |
+|---------|------|
+| Base44 App-ID | `69738942257c5676efe9835b` |
+| Hauptfarbe | `#10B981` (Gruen - Dokumente) |
+| Domain | fintutto.cloud/formulare |
+
+**Formular-Kategorien:**
+- Mietvertraege (Standard, Moebliert, WG, Gewerbe)
+- Kuendigungen (Mieter, Vermieter, Sonder)
+- Abrechnungen (Nebenkosten, Heizkosten)
+- Protokolle (Uebergabe, Maengel)
+- Sonstiges (Mieterhoehung, Kaution, Mahnung)
+
+**Stripe-Preise (Einzelformulare):**
+- Basic Tier: 1,99-2,49 EUR
+- Standard Tier: 3,99-4,99 EUR
+- Pakete: 49,99-99,99 EUR
+
+---
+
+### 3.5 FT_NK_ABRECHNUNG - Nebenkostenabrechnung
+
+| Setting | Wert |
+|---------|------|
+| Base44 App-ID | `697656748422cf46cd7eecfc` |
+| Hauptfarbe | `#F97316` (Orange - Finanzen) |
+| Domain | fintutto.cloud/nebenkostenabrechnung |
+
+**8-Schritt Wizard:**
+1. Objekt & Zeitraum
+2. Mietvertraege
+3. Betriebskosten (BetrKV)
+4. Direktkosten
+5. Heizkosten (HeizkostenV)
+6. Ergebnisse
+7. Vorschau (PDF)
+8. Versand (Email/Post)
+
+**Stripe-Preise:**
+- NK-Abrechnung Einzel: 4,90 EUR
+- NK-Abrechnung Pro: 6,90 EUR/Monat
+- Briefversand: 1,20 EUR/Brief
+- Einschreiben: 4,50 EUR
+
+---
+
+### 3.6 FT_OCR_ZAEHLER - Zaehlerstand-App
+
+| Setting | Wert |
+|---------|------|
+| Base44 App-ID | `6976455cb77a3d4ec1a18e92` |
+| Hauptfarbe | `#EAB308` (Gelb - Vermoegen) |
+| Domain | zaehlerstand.app |
+
+**Features:**
+- OCR-Erkennung (Kamera)
+- Multi-Zaehlertypen (Strom, Gas, Wasser, Waerme)
+- Offline-faehig
+- Verbrauchshistorie
+- Plausibilitaetspruefung
+
+**Stripe-Preise:**
+- Basic: 2,99 EUR/Monat
+- Premium: 6,99 EUR/Monat
+- Business: 19,90 EUR/Monat
+- Lifetime: TBD
+
+---
+
+### 3.7 FT_CALC_RENDITE - Rendite-Rechner (Template)
+
+| Setting | Wert |
+|---------|------|
+| Base44 App-ID | `69717747c88c98939bb37c94` |
+| Hauptfarbe | `#4F46E5` (Indigo - Primary) |
+| Domain | mietrendite.de |
+
+**Rechner-Tiers:**
+
+| Tier | Rechner | Preise |
+|------|---------|--------|
+| **Premium** | Rendite, Cashflow, Mieterhoehung | Basic 2,99 EUR/Mo, Pro 6,99 EUR/Mo, Lifetime 29,90 EUR |
+| **Professional** | Kaufpreis, Nebenkosten, Tilgung, Eigenkapital, AfA, Grundsteuer, Mietspiegel | Basic 1,99 EUR/Mo, Pro 4,99 EUR/Mo, Lifetime 19,90 EUR |
+| **Standard** | Kaution, Indexmiete, Kuendigungsfrist, Heizkosten, Wohnflaeche | Basic 0,99 EUR/Mo, Pro 2,99 EUR/Mo, Lifetime 9,90 EUR |
+
+---
+
+## TEIL 4: LOVABLE PROMPTS
+
+### Allgemeine Anweisungen (fuer alle Apps):
+
+```
+WICHTIG - Fintutto Design System:
+
+1. TECHNOLOGIE:
+   - React + TypeScript + Tailwind CSS + shadcn/ui
+   - Supabase fuer Backend (Auth, Database, Storage)
+   - Stripe fuer Payments
+
+2. FARBEN (CSS Custom Properties):
+   - Primary: #4F46E5 (Indigo)
+   - Secondary: #7C3AED (Violett)
+   - Success: #10B981 (Gruen)
+   - Warning: #F59E0B (Orange)
+   - Danger: #EF4444 (Rot)
+   - Info: #3B82F6 (Blau)
+   - Hero Gradient: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)
+
+3. TYPOGRAFIE:
+   - Font: Inter (Google Fonts)
+   - Monospace: JetBrains Mono
+
+4. KOMPONENTEN:
+   - Cards mit border-radius: 12px und shadow
+   - Buttons mit hover-states
+   - Konsistente Spacing (Tailwind scale)
+
+5. SPRACHE:
+   - Deutsche Sprache fuer alle UI-Texte
+   - Formelle Anrede (Sie)
+```
+
+---
+
+### PROMPT 1: VERMIETIFY
+
+```
+Erstelle "Vermietify" - eine Immobilienverwaltungs-Plattform fuer deutsche Vermieter.
+
+DESIGN:
+- Hauptfarbe: #2563EB (Blau)
+- Akzentfarbe: #4F46E5 (Indigo)
+- Hero Gradient: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%)
+- Font: Inter
+- Deutsche Sprache
+
+NAVIGATION (Sidebar):
+1. Dashboard - KPIs, Charts, Schnellzugriff
+2. Immobilien - Gebaeude & Wohnungen verwalten
+3. Mieter - Mieterdatenbank, Vertraege
+4. Finanzen - Einnahmen, Ausgaben, Bankkonten
+5. Dokumente - Upload, Verwaltung
+6. Abrechnungen - Nebenkostenabrechnung
+7. Steuern - Anlage V, KAP, SO
+8. Kommunikation - Nachrichten an Mieter
+9. Einstellungen
+
+DASHBOARD:
+- 4 KPI-Karten: Gesamtmiete, Leerstand, Offene Reparaturen, Ausstehende Zahlungen
+- Liniendiagramm: Mieteinnahmen 12 Monate
+- Tabelle: Naechste Faelligkeiten
+- Liste: Offene Aufgaben
+
+IMMOBILIEN-SEITE:
+- Karten-Grid mit Gebaeuden
+- Gebaude hinzufuegen Dialog
+- Pro Gebaeude: Wohnungen mit Status
+
+MIETER-SEITE:
+- Mieterliste mit Suche
+- Mieter-Profil
+- Mietvertrag erstellen (Wizard)
+
+SUPABASE-TABELLEN:
+- users, organizations
+- buildings (name, address, city, postal_code)
+- units (building_id, unit_number, area, rooms, rent_amount, status)
+- tenants (first_name, last_name, email, phone)
+- leases (unit_id, tenant_id, start_date, end_date, rent_amount, deposit)
+- transactions (lease_id, amount, type, date)
+- documents (title, file_url, type)
+
+Erstelle die komplette App mit allen Seiten und Supabase-Integration.
+```
+
+---
+
+### PROMPT 2: MIETER-APP
+
+```
+Erstelle "Fintutto Mieter" - eine Mobile-First App fuer Mieter.
+
+DESIGN:
+- Hauptfarbe: #06B6D4 (Tuerkis)
+- Akzentfarbe: #10B981 (Gruen)
+- Hero Gradient: linear-gradient(135deg, #06B6D4 0%, #10B981 100%)
+- Mobile-First mit Bottom-Navigation
+- Deutsche Sprache
+
+BOTTOM-NAVIGATION (5 Tabs):
+1. Home (Dashboard)
+2. Finanzen
+3. Melden (+ Button, hervorgehoben)
+4. Chat
+5. Mehr
+
+HOME-DASHBOARD:
+- Begruessung "Hallo, [Name]!"
+- Karte: Naechste Mietzahlung (Betrag, Faellig am)
+- Karte: Offene Meldungen
+- Quick Actions: Zaehler ablesen, Mangel melden
+- Letzte Nachrichten
+
+FINANZEN:
+- Kontostand (Guthaben/Nachzahlung)
+- Miete Aufschluesselung (Kalt + NK)
+- Zahlungshistorie
+
+MELDEN (Floating Action Menu):
+- Mangel melden (Kategorie, Beschreibung, Foto, Dringlichkeit)
+- Zaehler ablesen (Typ, Foto, Wert)
+- Dokument anfragen
+
+ZAEHLER ABLESEN:
+- Zaehlertyp waehlen (Strom, Gas, Kaltwasser, Warmwasser)
+- Foto aufnehmen
+- Zählerstand eingeben
+- Vorheriger Stand + Verbrauch
+
+CHAT:
+- Konversationsliste
+- Chat mit Hausverwaltung
+- Chat mit Hausmeister
+
+MEHR-MENUE:
+- Meine Wohnung
+- Dokumente
+- Hausordnung
+- Notfallkontakte
+- Einstellungen
+
+SUPABASE-TABELLEN:
+- issues (user_id, unit_id, category, description, image_url, priority, status)
+- meter_readings (user_id, meter_type, value, image_url, reading_date)
+- messages (sender_id, recipient_id, content, is_read)
+
+Erstelle die komplette Mobile-App.
+```
+
+---
+
+### PROMPT 3: FORMULARE
+
+```
+Erstelle "Fintutto Formulare" - eine App fuer deutsche Mietrecht-Formulare und Rechner.
+
+DESIGN:
+- Hauptfarbe: #10B981 (Gruen)
+- Akzentfarbe: #4F46E5 (Indigo)
+- Aufgeraeumtes, formular-optimiertes Design
+- Deutsche Sprache
+
+NAVIGATION (Tabs):
+1. Formulare
+2. Rechner
+3. Meine Dokumente
+
+FORMULARE-SEITE:
+Kategorien als Accordion:
+- Mietvertraege (Standard, Moebliert, WG, Gewerbe)
+- Kuendigungen (Mieter, Vermieter, Sonder)
+- Abrechnungen (Nebenkosten, Heizkosten)
+- Protokolle (Uebergabe, Maengel)
+- Sonstiges (Mieterhoehung, Mietminderung, Kaution, Mahnung)
+
+Jedes Formular:
+- Interaktiver Formular-Builder mit Feldern
+- Live-Vorschau rechts
+- PDF-Download Button
+- Speichern in "Meine Dokumente"
+
+RECHNER-SEITE (Grid mit Karten):
+1. Renditerechner (Kaufpreis, Nebenkosten, Jahreskaltmiete -> Brutto/Netto-Rendite)
+2. Finanzierungsrechner (Darlehen, Zins, Tilgung -> Monatsrate)
+3. Nebenkostenrechner (Gesamtkosten, Flaechen -> Mieteranteil)
+4. Kaufnebenkostenrechner (Kaufpreis, Bundesland -> Grunderwerbsteuer etc.)
+
+MEINE DOKUMENTE:
+- Tabelle: Name, Typ, Erstellt, Aktionen
+- Ansehen, Bearbeiten, PDF, Loeschen
+
+SUPABASE:
+- documents (user_id, title, type, content_json)
+- calculations (user_id, type, input_json, result_json)
+
+Erstelle die komplette App.
+```
+
+---
+
+### PROMPT 4: NEBENKOSTENABRECHNUNG
+
+```
+Erstelle "Fintutto Nebenkosten" - eine App fuer Nebenkostenabrechnungen nach deutschem Recht (BetrKV).
+
+DESIGN:
+- Hauptfarbe: #F97316 (Orange)
+- Akzentfarbe: #4F46E5 (Indigo)
+- Wizard-Style mit Fortschrittsanzeige
+- Deutsche Sprache
+
+STRUKTUR:
+- Sidebar: Abrechnungen (Liste)
+- Hauptbereich: 8-Schritt Wizard
+
+8-SCHRITT WIZARD:
+
+SCHRITT 1: OBJEKT & ZEITRAUM
+- Gebaeude auswaehlen (Dropdown)
+- Abrechnungszeitraum (Von-Bis)
+
+SCHRITT 2: MIETVERTRAEGE
+- Tabelle mit Checkbox
+- Zeitraeume bei Mieterwechsel
+
+SCHRITT 3: BETRIEBSKOSTEN
+- Accordion mit BetrKV Kategorien (17 Stueck)
+- Pro Kategorie: Betrag + Umlageschluessel
+
+SCHRITT 4: DIREKTKOSTEN
+- Mieter-spezifische Kosten
+
+SCHRITT 5: HEIZKOSTEN
+- Gesamte Heizkosten
+- Aufteilung (30/70, 50/50 etc.)
+- Zaehlerstaende
+
+SCHRITT 6: ERGEBNISSE
+- Tabelle pro Mieter
+- Vorauszahlung, Anteil, Saldo
+- Gruen = Guthaben, Rot = Nachzahlung
+
+SCHRITT 7: VORSCHAU
+- PDF-Vorschau
+- Checkliste
+
+SCHRITT 8: VERSAND
+- Email, PDF, Post
+
+SUPABASE:
+- operating_costs (building_id, period_start, period_end, status)
+- operating_cost_items (operating_cost_id, cost_type, amount, allocation_key)
+- operating_cost_results (operating_cost_id, lease_id, prepayment, cost_share, balance)
+
+Erstelle den kompletten 8-Schritt Wizard.
+```
+
+---
+
+### PROMPT 5: HAUSMEISTER-APP
+
+```
+Erstelle "Fintutto Hausmeister" - eine Mobile-App fuer Hausmeister.
+
+DESIGN:
+- Hauptfarbe: #059669 (Emerald/Gruen)
+- Akzentfarbe: #10B981 (Hellgruen)
+- Mobile-First, grosse Touch-Targets
+- Deutsche Sprache
+
+BOTTOM-NAVIGATION:
+1. Aufgaben
+2. Objekte
+3. Kalender
+4. Nachrichten
+5. Profil
+
+AUFGABEN-SEITE:
+- Filter-Tabs: Alle, Offen, In Arbeit, Erledigt
+- Aufgaben-Karten:
+  - Titel, Objekt/Wohnung
+  - Prioritaet (Farbcode)
+  - Melder (Mieter-Name)
+- Swipe: Annehmen, Erledigt
+
+AUFGABEN-DETAIL:
+- Beschreibung
+- Fotos vom Mieter
+- Status aendern
+- Notizen hinzufuegen
+- Foto dokumentieren
+- Zeiterfassung (Start/Stop)
+
+OBJEKTE-SEITE:
+- Liste aller Gebaeude
+- Pro Gebaeude: Adresse, Einheiten, Offene Aufgaben
+
+KALENDER:
+- Monatsansicht
+- Termine (Wartung, Begehung)
+
+SUPABASE:
+- tasks (unit_id, title, description, priority, status, assigned_to)
+- task_photos (task_id, url, type)
+- task_notes (task_id, content)
+- time_entries (task_id, user_id, start_time, end_time)
+
+Erstelle die komplette Hausmeister-App.
+```
+
+---
+
+### PROMPT 6: OCR ZAEHLER-APP
+
+```
+Erstelle "Fintutto Zaehlerstand" - eine App zum Ablesen von Zaehlerstaenden mit OCR.
+
+DESIGN:
+- Hauptfarbe: #EAB308 (Gelb)
+- Akzentfarbe: #F97316 (Orange)
+- Mobile-First, Kamera-optimiert
+- Deutsche Sprache
+
+HAUPTFUNKTION:
+1. Zaehlertyp waehlen (Strom, Gas, Kaltwasser, Warmwasser, Heizung)
+2. Foto aufnehmen oder hochladen
+3. OCR erkennt automatisch den Zaehlerstand
+4. Benutzer bestaetigt oder korrigiert
+5. Speichern mit Datum
+
+DASHBOARD:
+- Uebersicht aller Zaehler
+- Letzter Stand + Datum
+- Verbrauch seit letzter Ablesung
+
+ZAEHLER-DETAIL:
+- Historie aller Ablesungen
+- Verbrauchs-Chart (Liniendiagramm)
+- Vergleich mit Vorjahr
+
+ABLESEN-FLOW:
+- Kamera-Ansicht mit Rahmen
+- "Foto aufnehmen" Button
+- Ladebalken waehrend OCR
+- Ergebnis mit Konfidenz-Anzeige
+- Bearbeiten-Option
+- Speichern
+
+SUPABASE:
+- meters (unit_id, meter_number, meter_type)
+- meter_readings (meter_id, reading_date, value, image_url, source, confidence)
+
+Erstelle die komplette Zaehler-App mit OCR-Simulation.
+```
+
+---
+
+## TEIL 5: GEMEINSAMES SUPABASE-SCHEMA
 
 ```sql
--- Organisationen & Benutzer
+-- ═══════════════════════════════════════════════════════════════════
+-- ORGANISATIONEN & BENUTZER
+-- ═══════════════════════════════════════════════════════════════════
+
 CREATE TABLE organizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   type TEXT, -- 'vermieter', 'hausverwaltung', 'makler'
+  stripe_customer_id TEXT,
+  subscription_plan TEXT DEFAULT 'free',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -329,10 +709,14 @@ CREATE TABLE users (
   email TEXT NOT NULL,
   full_name TEXT,
   role TEXT DEFAULT 'user', -- 'admin', 'vermieter', 'mieter', 'hausmeister'
+  avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Immobilien
+-- ═══════════════════════════════════════════════════════════════════
+-- IMMOBILIEN
+-- ═══════════════════════════════════════════════════════════════════
+
 CREATE TABLE buildings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id),
@@ -340,6 +724,7 @@ CREATE TABLE buildings (
   address TEXT,
   city TEXT,
   postal_code TEXT,
+  country TEXT DEFAULT 'DE',
   total_units INTEGER DEFAULT 0,
   total_area DECIMAL(10,2),
   year_built INTEGER,
@@ -353,12 +738,15 @@ CREATE TABLE units (
   floor INTEGER,
   area DECIMAL(10,2),
   rooms DECIMAL(3,1),
-  type TEXT, -- 'apartment', 'commercial', 'parking'
+  type TEXT DEFAULT 'apartment', -- 'apartment', 'commercial', 'parking'
   status TEXT DEFAULT 'available', -- 'rented', 'available', 'maintenance'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Mietverträge
+-- ═══════════════════════════════════════════════════════════════════
+-- MIETVERTRAEGE
+-- ═══════════════════════════════════════════════════════════════════
+
 CREATE TABLE leases (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   unit_id UUID REFERENCES units(id),
@@ -366,13 +754,17 @@ CREATE TABLE leases (
   start_date DATE NOT NULL,
   end_date DATE,
   rent_amount DECIMAL(10,2) NOT NULL,
+  utilities_advance DECIMAL(10,2) DEFAULT 0,
   deposit_amount DECIMAL(10,2),
   payment_day INTEGER DEFAULT 1,
   status TEXT DEFAULT 'active', -- 'active', 'terminated', 'pending'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Zähler & Ablesungen
+-- ═══════════════════════════════════════════════════════════════════
+-- ZAEHLER & ABLESUNGEN
+-- ═══════════════════════════════════════════════════════════════════
+
 CREATE TABLE meters (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   unit_id UUID REFERENCES units(id),
@@ -395,13 +787,16 @@ CREATE TABLE meter_readings (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Betriebskosten
+-- ═══════════════════════════════════════════════════════════════════
+-- BETRIEBSKOSTEN
+-- ═══════════════════════════════════════════════════════════════════
+
 CREATE TABLE operating_costs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   building_id UUID REFERENCES buildings(id),
   period_start DATE NOT NULL,
   period_end DATE NOT NULL,
-  status TEXT DEFAULT 'draft', -- 'draft', 'calculated', 'sent', 'disputed'
+  status TEXT DEFAULT 'draft', -- 'draft', 'calculated', 'sent'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -410,11 +805,33 @@ CREATE TABLE operating_cost_items (
   operating_cost_id UUID REFERENCES operating_costs(id),
   cost_type TEXT NOT NULL, -- BetrKV Kategorien
   amount DECIMAL(12,2) NOT NULL,
-  allocation_key TEXT, -- 'area', 'units', 'persons', 'consumption'
+  allocation_key TEXT DEFAULT 'area', -- 'area', 'units', 'persons', 'consumption'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Dokumente
+-- ═══════════════════════════════════════════════════════════════════
+-- AUFGABEN & REPARATUREN
+-- ═══════════════════════════════════════════════════════════════════
+
+CREATE TABLE tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  unit_id UUID REFERENCES units(id),
+  created_by UUID REFERENCES users(id),
+  assigned_to UUID REFERENCES users(id),
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT, -- 'repair', 'maintenance', 'inspection'
+  priority TEXT DEFAULT 'medium', -- 'low', 'medium', 'high', 'urgent'
+  status TEXT DEFAULT 'open', -- 'open', 'in_progress', 'completed'
+  due_date DATE,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ═══════════════════════════════════════════════════════════════════
+-- DOKUMENTE & NACHRICHTEN
+-- ═══════════════════════════════════════════════════════════════════
+
 CREATE TABLE documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id),
@@ -423,12 +840,10 @@ CREATE TABLE documents (
   document_type TEXT,
   file_url TEXT,
   file_size INTEGER,
-  mime_type TEXT,
-  metadata JSONB,
+  content_json JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Nachrichten
 CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sender_id UUID REFERENCES users(id),
@@ -438,605 +853,35 @@ CREATE TABLE messages (
   is_read BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Aufgaben/Reparaturen
-CREATE TABLE tasks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  unit_id UUID REFERENCES units(id),
-  created_by UUID REFERENCES users(id),
-  assigned_to UUID REFERENCES users(id),
-  title TEXT NOT NULL,
-  description TEXT,
-  priority TEXT DEFAULT 'medium', -- 'low', 'medium', 'high', 'urgent'
-  status TEXT DEFAULT 'open', -- 'open', 'in_progress', 'completed', 'cancelled'
-  due_date DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-### Views
-
-```sql
--- Aktive Mietverträge mit Details
-CREATE VIEW v_active_leases AS
-SELECT
-  l.*,
-  u.unit_number,
-  u.area,
-  b.name as building_name,
-  b.address,
-  usr.full_name as tenant_name,
-  usr.email as tenant_email
-FROM leases l
-JOIN units u ON l.unit_id = u.id
-JOIN buildings b ON u.building_id = b.id
-JOIN users usr ON l.tenant_id = usr.id
-WHERE l.status = 'active';
-
--- Gebäude-Übersicht
-CREATE VIEW v_buildings_summary AS
-SELECT
-  b.*,
-  COUNT(DISTINCT u.id) as unit_count,
-  COUNT(DISTINCT CASE WHEN l.status = 'active' THEN l.id END) as occupied_units,
-  SUM(CASE WHEN l.status = 'active' THEN l.rent_amount ELSE 0 END) as total_rent
-FROM buildings b
-LEFT JOIN units u ON b.id = u.building_id
-LEFT JOIN leases l ON u.id = l.unit_id
-GROUP BY b.id;
-
--- Zähler mit letzter Ablesung
-CREATE VIEW v_meters_with_readings AS
-SELECT
-  m.*,
-  mr.reading_value as last_reading,
-  mr.reading_date as last_reading_date
-FROM meters m
-LEFT JOIN LATERAL (
-  SELECT reading_value, reading_date
-  FROM meter_readings
-  WHERE meter_id = m.id
-  ORDER BY reading_date DESC
-  LIMIT 1
-) mr ON true;
 ```
 
 ---
 
-## 🚀 LOVABLE PROMPTS
+## TEIL 6: NAECHSTE SCHRITTE
 
-### Allgemeine Anweisungen für alle Apps:
+### Fuer Lovable:
 
-```
-WICHTIG FÜR ALLE APPS:
-- Nutze React + TypeScript + Tailwind CSS + shadcn/ui
-- Verbinde mit Supabase (URL und Anon Key werden separat eingegeben)
-- Farbschema: Dunkelblau (#1E3A8A) + Gold (#D4AF37)
-- Deutsche Sprache für alle Texte
-- Mobile-First Design
-- Dark Mode Support
-```
+1. **6 Lovable-Projekte erstellen** (eins pro App)
+2. **Jeden Prompt kopieren** und in Lovable einfuegen
+3. **Supabase verbinden** mit:
+   - URL: `https://aaefocdqgdgexkcrjhks.supabase.co`
+   - Anon Key: [Dein Key]
+4. **Feintuning** der UI
+5. **Testing**
+6. **Custom Domains** verbinden
 
----
+### Base44 App-IDs (Referenz):
 
-### PROMPT 1: VERMIETIFY (Haupt-App)
-
-```
-Erstelle "Vermietify" - eine vollständige Immobilienverwaltungs-Plattform für deutsche Vermieter.
-
-DESIGN:
-- Primärfarbe: Dunkelblau (#1E3A8A)
-- Akzentfarbe: Gold (#D4AF37)
-- Modern, professionell, mit Glassmorphism-Elementen
-- Dark Mode Support
-
-STRUKTUR (Sidebar-Navigation):
-1. Dashboard - Übersicht mit KPIs (Mieteinnahmen, Leerstand, offene Aufgaben)
-2. Immobilien - Gebäude und Wohnungen verwalten
-3. Mieter - Mieterdatenbank und Verträge
-4. Finanzen - Einnahmen, Ausgaben, Bankkonten
-5. Dokumente - Dokumentenverwaltung mit Upload
-6. Abrechnungen - Nebenkostenabrechnung
-7. Steuern - Steueroptimierung Deutschland
-8. Kommunikation - Nachrichten an Mieter
-9. Einstellungen - Profil und App-Einstellungen
-
-FEATURES PRO SEITE:
-
-Dashboard:
-- 4 KPI-Karten (Gesamtmiete, Leerstandsquote, Offene Reparaturen, Ausstehende Zahlungen)
-- Liniendiagramm: Mieteinnahmen letzte 12 Monate
-- Tabelle: Nächste Mietfälligkeiten
-- Liste: Offene Aufgaben
-
-Immobilien:
-- Kartenansicht aller Gebäude mit Kartenvorschau
-- Gebäude hinzufügen/bearbeiten Dialog
-- Wohnungen pro Gebäude mit Status (vermietet/leer)
-- Gebäude-Detail mit allen Einheiten
-
-Mieter:
-- Mieterliste mit Suchfunktion
-- Mieter-Profil mit Vertragsdaten
-- Mietvertrag erstellen (Formular mit: Mieter, Wohnung, Startdatum, Miete, Kaution)
-
-Finanzen:
-- Monatliche Einnahmen/Ausgaben Übersicht
-- Transaktionsliste mit Filter
-- Bankkonten verknüpfen (UI-Placeholder)
-- Rechnung erstellen
-
-SUPABASE-TABELLEN:
-- buildings (id, name, address, city, postal_code)
-- units (id, building_id, unit_number, area, rooms, rent_amount, status)
-- tenants (id, first_name, last_name, email, phone)
-- leases (id, unit_id, tenant_id, start_date, end_date, rent_amount, deposit)
-- transactions (id, lease_id, amount, type, date, description)
-- documents (id, title, file_url, type, created_at)
-
-AUTH:
-- Supabase Auth mit Email/Password
-- Protected Routes für eingeloggte User
-
-Erstelle die komplette App mit allen genannten Seiten und Funktionen.
-```
+| App | Base44 ID |
+|-----|-----------|
+| Vermietify | `694ec0b3e6d09c2e6b8e0485` |
+| HausmeisterPro | `696fb16c734074a341d24cf9` |
+| MieterApp | `696feb63b8085b338cf6c4e7` |
+| FT_Formulare | `69738942257c5676efe9835b` |
+| FT_NK_Abrechnung | `697656748422cf46cd7eecfc` |
+| FT_OCR_Zaehler | `6976455cb77a3d4ec1a18e92` |
+| FT_CALC_Rendite | `69717747c88c98939bb37c94` |
 
 ---
 
-### PROMPT 2: FORMULARE
-
-```
-Erstelle "Fintutto Formulare" - eine Web-App für deutsche Mietrecht-Formulare und Immobilien-Rechner.
-
-DESIGN:
-- Primärfarbe: Dunkelblau (#1E3A8A)
-- Akzentfarbe: Gold (#D4AF37)
-- Aufgeräumt, formular-optimiert
-- Responsive für Desktop und Mobile
-
-NAVIGATION (Tabs oben):
-1. Formulare
-2. Rechner
-3. Meine Dokumente
-
-FORMULARE-SEITE:
-Kategorien als Accordion:
-- Mietverträge (Standard, Möbliert, WG, Gewerbe)
-- Kündigungen (Mieter, Vermieter, Sonder)
-- Abrechnungen (Nebenkosten, Heizkosten)
-- Protokolle (Übergabe, Mängel)
-- Sonstiges (Mieterhöhung, Mietminderung, Kaution)
-
-Jedes Formular:
-- Interaktiver Formular-Builder
-- Pflichtfelder markiert
-- Live-Vorschau rechts
-- PDF-Download Button
-- In "Meine Dokumente" speichern
-
-BEISPIEL-FORMULAR "Mietvertrag":
-Felder:
-- Vermieter (Name, Adresse)
-- Mieter (Name, Adresse, Geburtsdatum)
-- Mietobjekt (Adresse, Etage, Fläche, Zimmer)
-- Mietbeginn, Mietende (optional)
-- Kaltmiete, Nebenkosten-Vorauszahlung
-- Kaution
-- Besondere Vereinbarungen (Textarea)
-
-RECHNER-SEITE:
-Grid mit Rechner-Karten:
-
-1. Renditerechner
-   - Kaufpreis, Kaufnebenkosten, Jahreskaltmiete, Instandhaltung
-   - Output: Brutto-Rendite, Netto-Rendite, Faktor
-
-2. Finanzierungsrechner
-   - Darlehensbetrag, Zinssatz, Tilgung, Laufzeit
-   - Output: Monatliche Rate, Gesamtkosten, Restschuld
-
-3. Nebenkostenrechner
-   - Gesamtkosten, Fläche Gebäude, Fläche Wohnung, Mietmonate
-   - Output: Anteil Mieter, Monatliche Vorauszahlung
-
-4. Kaufnebenkosten-Rechner
-   - Kaufpreis, Bundesland
-   - Output: Grunderwerbsteuer, Notar, Grundbuch, Makler, Gesamt
-
-MEINE DOKUMENTE:
-- Tabelle mit allen erstellten Dokumenten
-- Spalten: Name, Typ, Erstellt am, Aktionen
-- Aktionen: Ansehen, Bearbeiten, PDF, Löschen
-
-SUPABASE:
-- documents (id, user_id, title, type, content_json, created_at)
-- calculations (id, user_id, type, input_json, result_json, created_at)
-
-Erstelle die komplette App mit allen Formularen und Rechnern.
-```
-
----
-
-### PROMPT 3: MIETER-APP
-
-```
-Erstelle "Fintutto Mieter" - eine Mobile-First App für Mieter zur Kommunikation mit ihrer Hausverwaltung.
-
-DESIGN:
-- Primärfarbe: Dunkelblau (#1E3A8A)
-- Akzentfarbe: Gold (#D4AF37)
-- Mobile-First mit Bottom-Navigation
-- Freundlich und zugänglich
-
-BOTTOM-NAVIGATION (5 Tabs):
-1. Home (Dashboard)
-2. Finanzen
-3. Melden (+ Button, hervorgehoben)
-4. Chat
-5. Mehr
-
-HOME-DASHBOARD:
-- Begrüßung "Hallo, [Name]!"
-- Karte: Nächste Mietzahlung (Betrag, Fällig am)
-- Karte: Offene Meldungen (Anzahl)
-- Quick Actions: Zähler ablesen, Mangel melden
-- Letzte Nachrichten (3 Stück)
-- Ankündigungen der Hausverwaltung
-
-FINANZEN:
-- Aktueller Kontostand (Guthaben/Nachzahlung)
-- Monatliche Miete Aufschlüsselung (Kaltmiete, Nebenkosten)
-- Zahlungshistorie (Liste)
-- Button: Zahlungsnachweis hochladen
-
-MELDEN (Floating Action Menu):
-- Mangel melden
-- Zähler ablesen
-- Dokument anfragen
-
-MANGEL MELDEN:
-- Kategorie (Dropdown: Heizung, Wasser, Elektrik, Fenster/Türen, Sonstiges)
-- Beschreibung (Textarea)
-- Foto hochladen (Kamera oder Galerie)
-- Dringlichkeit (Niedrig, Mittel, Hoch, Notfall)
-- Absenden Button
-
-ZÄHLER ABLESEN:
-- Zählertyp auswählen (Strom, Gas, Kaltwasser, Warmwasser)
-- Zählernummer anzeigen
-- Foto aufnehmen (mit Kamera)
-- Zählerstand eingeben
-- Vorheriger Stand + Verbrauch anzeigen
-- Absenden
-
-CHAT:
-- Konversationsliste
-- Chat mit Hausverwaltung
-- Chat mit Hausmeister
-- Nachrichten mit Zeitstempel
-- Nachricht senden (Text + Anhang)
-
-MEHR (Menüliste):
-- Meine Wohnung (Details)
-- Dokumente
-- Hausordnung
-- Notfallkontakte
-- Einstellungen
-- Abmelden
-
-SUPABASE:
-- users (id, email, name, unit_id, role)
-- units (id, building_id, number, address)
-- issues (id, user_id, unit_id, category, description, image_url, priority, status, created_at)
-- meter_readings (id, user_id, meter_type, value, image_url, reading_date)
-- messages (id, sender_id, recipient_id, content, created_at, is_read)
-- announcements (id, title, content, created_at)
-
-AUTH:
-- Supabase Auth
-- Nur Mieter-Rolle kann diese App nutzen
-
-Erstelle die komplette Mobile-App mit allen Features.
-```
-
----
-
-### PROMPT 4: NEBENKOSTENABRECHNUNG
-
-```
-Erstelle "Fintutto Nebenkosten" - eine spezialisierte App für die Erstellung von Nebenkostenabrechnungen nach deutschem Recht (BetrKV).
-
-DESIGN:
-- Primärfarbe: Dunkelblau (#1E3A8A)
-- Akzentfarbe: Gold (#D4AF37)
-- Wizard-Style mit Fortschrittsanzeige
-- Übersichtlich trotz komplexer Daten
-
-HAUPTSTRUKTUR:
-- Sidebar: Abrechnungen (Liste)
-- Hauptbereich: 8-Schritt Wizard
-
-SIDEBAR:
-- "Neue Abrechnung" Button
-- Liste vergangener Abrechnungen
-- Filter: Jahr, Gebäude, Status
-
-8-SCHRITT WIZARD:
-
-SCHRITT 1: OBJEKT & ZEITRAUM
-- Gebäude auswählen (Dropdown)
-- Abrechnungszeitraum (Von-Bis Datepicker)
-- Weiter Button
-
-SCHRITT 2: MIETVERTRÄGE
-- Tabelle: Alle Mietverträge im Gebäude
-- Checkbox: In Abrechnung einbeziehen
-- Bei Mieterwechsel: Zeiträume automatisch aufteilen
-- Info: Anzahl ausgewählte Verträge
-
-SCHRITT 3: BETRIEBSKOSTEN
-- Accordion mit BetrKV Kategorien:
-  1. Laufende öffentliche Lasten
-  2. Wasserversorgung
-  3. Entwässerung
-  4. Heizung (separater Schritt)
-  5. Warmwasser
-  6. Aufzug
-  7. Straßenreinigung
-  8. Müllabfuhr
-  9. Gebäudereinigung
-  10. Gartenpflege
-  11. Beleuchtung
-  12. Schornsteinreinigung
-  13. Versicherungen
-  14. Hauswart
-  15. Sonstige
-
-Pro Kategorie:
-- Gesamtbetrag eingeben
-- Umlageschlüssel (Fläche, Einheiten, Personen, Verbrauch)
-
-SCHRITT 4: DIREKTKOSTEN
-- Tabelle: Mieter-spezifische Kosten
-- Mieter auswählen, Betrag, Beschreibung
-- Beispiel: Kabelanschluss, Garage
-
-SCHRITT 5: HEIZKOSTEN
-- Heizkosten-Verordnung Info
-- Gesamte Heizkosten eingeben
-- Aufteilung festlegen (Slider: 30/70, 50/50, etc.)
-- Grundkosten (nach Fläche)
-- Verbrauchskosten (nach Verbrauch)
-- Zählerstände importieren oder manuell
-
-SCHRITT 6: ERGEBNISSE
-- Tabelle: Ergebnis pro Mieter
-- Spalten: Mieter, Vorauszahlung, Anteil Kosten, Saldo
-- Grün = Guthaben, Rot = Nachzahlung
-- Summen-Zeile
-
-SCHRITT 7: VORSCHAU
-- PDF-Vorschau der Abrechnung
-- Für jeden Mieter separat
-- Prüfliste:
-  ✓ Abrechnungszeitraum korrekt
-  ✓ Alle Kosten erfasst
-  ✓ Umlageschlüssel plausibel
-  ✓ Vorauszahlungen korrekt
-
-SCHRITT 8: VERSAND
-- Versandoptionen:
-  - Per Email
-  - Als PDF Download
-  - Per Post (Placeholder)
-- Mieter auswählen
-- Absenden Button
-- Status: Versendet
-
-SUPABASE:
-- buildings, units, leases (wie zuvor)
-- operating_costs (id, building_id, period_start, period_end, status)
-- operating_cost_items (id, operating_cost_id, cost_type, amount, allocation_key)
-- operating_cost_results (id, operating_cost_id, lease_id, prepayment, cost_share, balance)
-
-Erstelle die komplette Wizard-App mit allen 8 Schritten.
-```
-
----
-
-### PROMPT 5: HAUSMEISTER-APP
-
-```
-Erstelle "Fintutto Hausmeister" - eine Mobile-App für Hausmeister zur Aufgabenverwaltung und Kommunikation.
-
-DESIGN:
-- Primärfarbe: Dunkelblau (#1E3A8A)
-- Akzentfarbe: Gold (#D4AF37)
-- Mobile-First, einfach zu bedienen
-- Große Touch-Targets
-
-BOTTOM-NAVIGATION:
-1. Aufgaben
-2. Objekte
-3. Kalender
-4. Nachrichten
-5. Profil
-
-AUFGABEN-SEITE:
-- Filter-Tabs: Alle, Offen, In Arbeit, Erledigt
-- Aufgaben-Karten:
-  - Titel
-  - Objekt/Wohnung
-  - Priorität (Farbcode)
-  - Erstellt am
-  - Melder (Mieter-Name)
-- Swipe-Aktionen: Annehmen, Erledigt
-
-AUFGABEN-DETAIL:
-- Beschreibung
-- Fotos vom Mieter
-- Status ändern (Dropdown)
-- Notizen hinzufügen
-- Foto hinzufügen (Dokumentation)
-- Material erfassen
-- Zeiterfassung (Start/Stop)
-- Als erledigt markieren
-
-OBJEKTE-SEITE:
-- Liste aller betreuten Gebäude
-- Pro Gebäude: Adresse, Einheiten, Offene Aufgaben
-
-OBJEKT-DETAIL:
-- Gebäude-Info
-- Liste aller Wohnungen
-- Kontakt Hausverwaltung
-- Rundgang starten (Checkliste)
-
-KALENDER:
-- Monatsansicht
-- Termine anzeigen (Wartung, Begehung, etc.)
-- Termin erstellen
-
-NACHRICHTEN:
-- Chat mit Hausverwaltung
-- Chat mit Mietern (bei Rückfragen)
-
-PROFIL:
-- Name, Kontakt
-- Arbeitszeitübersicht
-- Erledigte Aufgaben (Statistik)
-- Abmelden
-
-SUPABASE:
-- users (mit role='hausmeister')
-- buildings, units
-- tasks (id, unit_id, title, description, priority, status, created_by, assigned_to, created_at, completed_at)
-- task_photos (id, task_id, url, type, uploaded_at)
-- task_notes (id, task_id, content, created_at)
-- time_entries (id, task_id, user_id, start_time, end_time)
-
-Erstelle die komplette Hausmeister-App.
-```
-
----
-
-### PROMPT 6: ADMIN-HUB
-
-```
-Erstelle "Fintutto Admin Hub" - ein zentrales Administrations-Dashboard für das gesamte Fintutto-Ökosystem.
-
-DESIGN:
-- Primärfarbe: Dunkelblau (#1E3A8A)
-- Akzentfarbe: Gold (#D4AF37)
-- Professionell, Dashboard-orientiert
-- Daten-fokussiert
-
-SIDEBAR-NAVIGATION:
-1. Dashboard
-2. Benutzer
-3. Organisationen
-4. Apps
-5. API & Webhooks
-6. Logs & Audit
-7. System
-8. Einstellungen
-
-DASHBOARD:
-- KPI-Karten:
-  - Aktive Benutzer
-  - Organisationen
-  - API-Calls heute
-  - System-Status
-- Grafik: Benutzer-Wachstum
-- Grafik: API-Nutzung
-- Letzte Aktivitäten
-
-BENUTZER:
-- Tabelle: Alle Benutzer
-- Spalten: Name, Email, Organisation, Rolle, Status, Erstellt
-- Such- und Filter-Funktion
-- Benutzer bearbeiten Modal
-- Benutzer sperren/entsperren
-
-ORGANISATIONEN:
-- Tabelle: Alle Organisationen
-- Spalten: Name, Typ, Benutzer, Gebäude, Plan, Erstellt
-- Organisation-Detail:
-  - Übersicht
-  - Benutzer der Organisation
-  - Gebäude
-  - Rechnungen
-  - Einstellungen
-
-APPS:
-- Karten für jede Fintutto-App:
-  - Vermietify
-  - Formulare
-  - Mieter
-  - Nebenkosten
-  - Hausmeister
-- Pro App: Aktive Nutzer, Status, Version
-- App aktivieren/deaktivieren pro Organisation
-
-API & WEBHOOKS:
-- API-Keys verwalten
-- Webhook-Endpunkte konfigurieren
-- Request-Log der letzten 100 Anfragen
-
-LOGS & AUDIT:
-- Aktivitäts-Log (wer hat was wann gemacht)
-- Filter: Benutzer, Aktion, Zeitraum
-- Export als CSV
-
-SYSTEM:
-- System-Status aller Services
-- Datenbank-Statistiken
-- Cache-Management
-- Jobs & Background-Tasks
-
-EINSTELLUNGEN:
-- Globale Einstellungen
-- Email-Templates
-- Benachrichtigungs-Einstellungen
-- Backup-Konfiguration
-
-SUPABASE:
-- Alle bestehenden Tabellen
-- api_keys (id, organization_id, key, name, scopes, created_at, expires_at)
-- webhooks (id, organization_id, url, events, active)
-- audit_logs (id, user_id, action, resource, details, created_at)
-
-Erstelle das komplette Admin-Dashboard.
-```
-
----
-
-## 🔗 SUPABASE VERBINDUNG
-
-### Deine Supabase-Daten:
-```
-Project URL: https://aaefocdqgdgexkcrjhks.supabase.co
-Anon Key: [Dein Anon Key hier einfügen]
-```
-
-### In Lovable verbinden:
-1. Projekt öffnen
-2. Settings (Zahnrad) → Supabase
-3. URL und Anon Key eingeben
-4. Verbinden
-
----
-
-## ✅ NÄCHSTE SCHRITTE
-
-1. [ ] Lovable Account einrichten (Team/Workspace)
-2. [ ] 6 neue Projekte erstellen (eine pro App)
-3. [ ] Jeden Prompt in das entsprechende Projekt einfügen
-4. [ ] Supabase verbinden
-5. [ ] Feintuning der Apps
-6. [ ] Testing
-7. [ ] Deployment
-
----
-
-*Dokumentation erstellt von Claude Code für Fintutto*
+*Dokumentation basierend auf A-Docs - erstellt von Claude Code fuer Fintutto*
