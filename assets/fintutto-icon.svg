@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <!-- Ring Gradient -->
+    <linearGradient id="icon-ring" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="17%" stop-color="#06B6D4"/>
+      <stop offset="33%" stop-color="#10B981"/>
+      <stop offset="50%" stop-color="#EAB308"/>
+      <stop offset="67%" stop-color="#F97316"/>
+      <stop offset="83%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+
+    <!-- Fin Gradient -->
+    <linearGradient id="icon-fin" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#F97316"/>
+      <stop offset="75%" stop-color="#F97316"/>
+      <stop offset="87%" stop-color="#EC4899"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Circle Ring -->
+  <circle cx="50" cy="50" r="43" fill="none" stroke="url(#icon-ring)" stroke-width="14"/>
+
+  <!-- Segment Lines -->
+  <g stroke="white" stroke-width="2" opacity="0.4">
+    <line x1="50" y1="15" x2="50" y2="0"/>
+    <line x1="87.3" y1="28.5" x2="100" y2="21"/>
+    <line x1="87.3" y1="71.5" x2="100" y2="79"/>
+    <line x1="50" y1="85" x2="50" y2="100"/>
+    <line x1="12.7" y1="71.5" x2="0" y2="79"/>
+    <line x1="12.7" y1="28.5" x2="0" y2="21"/>
+  </g>
+
+  <!-- Inner Circle -->
+  <circle cx="50" cy="50" r="30" fill="white"/>
+
+  <!-- "Fin" Text -->
+  <text x="50" y="60" text-anchor="middle" font-size="28" font-weight="400" fill="url(#icon-fin)" font-family="Georgia, serif" letter-spacing="-0.5">Fin</text>
+</svg>
