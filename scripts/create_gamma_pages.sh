@@ -40,7 +40,8 @@ RECHNER_RESPONSE=$(curl -s --request POST \
     }
   }')
 
-RECHNER_ID=$(echo "$RECHNER_RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+RECHNER_ID=$(echo "$RECHNER_RESPONSE" | grep -o '"generationId":"[^"]*"' | cut -d'"' -f4)
+echo "   Response: $RECHNER_RESPONSE"
 echo "   Generation ID: $RECHNER_ID"
 echo ""
 
@@ -73,7 +74,8 @@ CHECKER_RESPONSE=$(curl -s --request POST \
     }
   }')
 
-CHECKER_ID=$(echo "$CHECKER_RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+CHECKER_ID=$(echo "$CHECKER_RESPONSE" | grep -o '"generationId":"[^"]*"' | cut -d'"' -f4)
+echo "   Response: $CHECKER_RESPONSE"
 echo "   Generation ID: $CHECKER_ID"
 echo ""
 
@@ -106,7 +108,8 @@ FORMULARE_RESPONSE=$(curl -s --request POST \
     }
   }')
 
-FORMULARE_ID=$(echo "$FORMULARE_RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+FORMULARE_ID=$(echo "$FORMULARE_RESPONSE" | grep -o '"generationId":"[^"]*"' | cut -d'"' -f4)
+echo "   Response: $FORMULARE_RESPONSE"
 echo "   Generation ID: $FORMULARE_ID"
 echo ""
 
