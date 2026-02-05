@@ -1,0 +1,55 @@
+From 8917eebc0656d0906d8b47e77c4a9494a372d4bf Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 5 Feb 2026 16:10:53 +0000
+Subject: [PATCH] feat: Update branding to Fintutto emerald and Stripe Price
+ IDs
+
+- Changed primary color to emerald (#10b981)
+- Updated Stripe Price IDs for Rendite-Rechner
+
+https://claude.ai/code/session_01Rnm9NzRrSeZfZQdSRGnh1P
+---
+ src/index.css             | 4 ++--
+ src/types/subscription.ts | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/index.css b/src/index.css
+index f0cee78..7216507 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -13,7 +13,7 @@
+     --popover: 0 0% 100%;
+     --popover-foreground: 215 25% 15%;
+ 
+-    --primary: 215 75% 45%;
++    --primary: 160 84% 39%;
+     --primary-foreground: 0 0% 100%;
+ 
+     --secondary: 175 60% 40%;
+@@ -67,7 +67,7 @@
+     --popover: 215 25% 13%;
+     --popover-foreground: 210 20% 98%;
+ 
+-    --primary: 215 75% 55%;
++    --primary: 160 84% 45%;
+     --primary-foreground: 0 0% 100%;
+ 
+     --secondary: 175 60% 45%;
+diff --git a/src/types/subscription.ts b/src/types/subscription.ts
+index b82987d..826bc8e 100644
+--- a/src/types/subscription.ts
++++ b/src/types/subscription.ts
+@@ -50,8 +50,8 @@ export const PRICING_PLANS: PricingPlan[] = [
+     description: 'Für aktive Investoren',
+     monthlyPrice: 9.99,
+     yearlyPrice: 95.90,
+-    priceIdMonthly: 'price_1SwLDt52lqSgjCzeYslwpr6I',
+-    priceIdYearly: 'price_1SwLLb52lqSgjCze6Gdp9SIz',
++    priceIdMonthly: 'price_1SuLks52lqSgjCzeKLj4qZaU',
++    priceIdYearly: 'price_1SuLkt52lqSgjCzef7bi1ZyD',
+     features: [
+       'Unbegrenzte Berechnungen',
+       'Alle Basis-Funktionen',
+-- 
+2.43.0
+

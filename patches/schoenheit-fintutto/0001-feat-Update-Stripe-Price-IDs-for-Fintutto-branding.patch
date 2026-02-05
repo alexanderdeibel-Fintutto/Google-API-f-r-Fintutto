@@ -1,0 +1,33 @@
+From d4ce73689356812febb3edc05369846dfc3c3bf2 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 5 Feb 2026 16:11:18 +0000
+Subject: [PATCH] feat: Update Stripe Price IDs for Fintutto branding
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Updated Pro plan Price IDs for Schönheitsreparaturen-Check
+
+https://claude.ai/code/session_01Rnm9NzRrSeZfZQdSRGnh1P
+---
+ src/types/subscription.ts | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/types/subscription.ts b/src/types/subscription.ts
+index b82987d..797a7b9 100644
+--- a/src/types/subscription.ts
++++ b/src/types/subscription.ts
+@@ -50,8 +50,8 @@ export const PRICING_PLANS: PricingPlan[] = [
+     description: 'Für aktive Investoren',
+     monthlyPrice: 9.99,
+     yearlyPrice: 95.90,
+-    priceIdMonthly: 'price_1SwLDt52lqSgjCzeYslwpr6I',
+-    priceIdYearly: 'price_1SwLLb52lqSgjCze6Gdp9SIz',
++    priceIdMonthly: 'price_1SuLla52lqSgjCzeitpfOvKr',
++    priceIdYearly: 'price_1SuLla52lqSgjCzeWhv8BPmg',
+     features: [
+       'Unbegrenzte Berechnungen',
+       'Alle Basis-Funktionen',
+-- 
+2.43.0
+

@@ -1,0 +1,1975 @@
+From ec7eb1302957a27adbeaa299282b4efe18b99219 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 5 Feb 2026 16:11:32 +0000
+Subject: [PATCH] feat: Add complete Pricing and Auth infrastructure
+
+- Add Pricing page with Stripe integration
+- Add Auth context and modal
+- Add subscription hook and types
+- Add Cross-Sell banner to promote other Fintutto tools
+- Update branding to Fintutto emerald (#10b981)
+- Add routes for pricing, success, and saved calculations
+
+https://claude.ai/code/session_01Rnm9NzRrSeZfZQdSRGnh1P
+---
+ src/App.tsx                              |  31 ++-
+ src/components/AuthModal.tsx             | 199 ++++++++++++++
+ src/components/CrossSellBanner.tsx       |  69 +++++
+ src/components/Header.tsx                | 139 ++++++++++
+ src/components/pricing/BillingToggle.tsx |  41 +++
+ src/components/pricing/PricingCard.tsx   | 114 ++++++++
+ src/contexts/AuthContext.tsx             |  85 ++++++
+ src/contexts/ProductsContext.tsx         |  41 +++
+ src/hooks/useSubscription.ts             |  71 +++++
+ src/index.css                            |  12 +-
+ src/lib/stripe.ts                        |  82 ++++++
+ src/pages/Berechnungen.tsx               | 323 +++++++++++++++++++++++
+ src/pages/Index.tsx                      |  44 ++-
+ src/pages/Pricing.tsx                    | 135 ++++++++++
+ src/pages/Success.tsx                    | 111 ++++++++
+ src/types/calculator.ts                  | 127 +++++++++
+ src/types/kaution.ts                     |  43 +++
+ src/types/subscription.ts                |  82 ++++++
+ 18 files changed, 1723 insertions(+), 26 deletions(-)
+ create mode 100644 src/components/AuthModal.tsx
+ create mode 100644 src/components/CrossSellBanner.tsx
+ create mode 100644 src/components/Header.tsx
+ create mode 100644 src/components/pricing/BillingToggle.tsx
+ create mode 100644 src/components/pricing/PricingCard.tsx
+ create mode 100644 src/contexts/AuthContext.tsx
+ create mode 100644 src/contexts/ProductsContext.tsx
+ create mode 100644 src/hooks/useSubscription.ts
+ create mode 100644 src/lib/stripe.ts
+ create mode 100644 src/pages/Berechnungen.tsx
+ create mode 100644 src/pages/Pricing.tsx
+ create mode 100644 src/pages/Success.tsx
+ create mode 100644 src/types/calculator.ts
+ create mode 100644 src/types/kaution.ts
+ create mode 100644 src/types/subscription.ts
+
+diff --git a/src/App.tsx b/src/App.tsx
+index 18daf2e..a9931fb 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -3,24 +3,33 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
+ import { TooltipProvider } from "@/components/ui/tooltip";
+ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+ import { BrowserRouter, Routes, Route } from "react-router-dom";
++import { AuthProvider } from "@/contexts/AuthContext";
+ import Index from "./pages/Index";
++import Pricing from "./pages/Pricing";
++import Success from "./pages/Success";
++import Berechnungen from "./pages/Berechnungen";
+ import NotFound from "./pages/NotFound";
+ 
+ const queryClient = new QueryClient();
+ 
+ const App = () => (
+   <QueryClientProvider client={queryClient}>
+-    <TooltipProvider>
+-      <Toaster />
+-      <Sonner />
+-      <BrowserRouter>
+-        <Routes>
+-          <Route path="/" element={<Index />} />
+-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+-          <Route path="*" element={<NotFound />} />
+-        </Routes>
+-      </BrowserRouter>
+-    </TooltipProvider>
++    <AuthProvider>
++      <TooltipProvider>
++        <Toaster />
++        <Sonner />
++        <BrowserRouter>
++          <Routes>
++            <Route path="/" element={<Index />} />
++            <Route path="/pricing" element={<Pricing />} />
++            <Route path="/success" element={<Success />} />
++            <Route path="/berechnungen" element={<Berechnungen />} />
++            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
++            <Route path="*" element={<NotFound />} />
++          </Routes>
++        </BrowserRouter>
++      </TooltipProvider>
++    </AuthProvider>
+   </QueryClientProvider>
+ );
+ 
+diff --git a/src/components/AuthModal.tsx b/src/components/AuthModal.tsx
+new file mode 100644
+index 0000000..f76072e
+--- /dev/null
++++ b/src/components/AuthModal.tsx
+@@ -0,0 +1,199 @@
++import { useState } from 'react';
++import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
++import { Button } from '@/components/ui/button';
++import { Input } from '@/components/ui/input';
++import { Label } from '@/components/ui/label';
++import { useAuth } from '@/contexts/AuthContext';
++import { Loader2, AlertCircle } from 'lucide-react';
++import { Alert, AlertDescription } from '@/components/ui/alert';
++import { getGenericErrorMessage } from '@/lib/errorHandler';
++
++interface AuthModalProps {
++  isOpen: boolean;
++  onClose: () => void;
++}
++
++type AuthMode = 'login' | 'register' | 'forgot';
++
++export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
++  const { signIn, signUp, resetPassword, isConfigured } = useAuth();
++  const [mode, setMode] = useState<AuthMode>('login');
++  const [email, setEmail] = useState('');
++  const [password, setPassword] = useState('');
++  const [loading, setLoading] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++  const [success, setSuccess] = useState<string | null>(null);
++
++  const handleSubmit = async (e: React.FormEvent) => {
++    e.preventDefault();
++    setLoading(true);
++    setError(null);
++    setSuccess(null);
++
++    try {
++      if (mode === 'login') {
++        const { error } = await signIn(email, password);
++        if (error) throw error;
++        onClose();
++      } else if (mode === 'register') {
++        const { error } = await signUp(email, password);
++        if (error) throw error;
++        setSuccess('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.');
++      } else if (mode === 'forgot') {
++        const { error } = await resetPassword(email);
++        if (error) throw error;
++        setSuccess('E-Mail zum Zurücksetzen des Passworts wurde gesendet.');
++      }
++    } catch (err: unknown) {
++      setError(getGenericErrorMessage(err, 'auth'));
++    } finally {
++      setLoading(false);
++    }
++  };
++
++  const resetForm = () => {
++    setEmail('');
++    setPassword('');
++    setError(null);
++    setSuccess(null);
++  };
++
++  const switchMode = (newMode: AuthMode) => {
++    resetForm();
++    setMode(newMode);
++  };
++
++  if (!isConfigured) {
++    return (
++      <Dialog open={isOpen} onOpenChange={onClose}>
++        <DialogContent>
++          <DialogHeader>
++            <DialogTitle>Supabase nicht konfiguriert</DialogTitle>
++            <DialogDescription>
++              Um die Authentifizierung zu nutzen, muss Supabase in den Projekt-Einstellungen konfiguriert werden.
++            </DialogDescription>
++          </DialogHeader>
++          <Alert>
++            <AlertCircle className="h-4 w-4" />
++            <AlertDescription>
++              Gehe zu Settings → Supabase und verbinde dein Supabase-Projekt.
++            </AlertDescription>
++          </Alert>
++        </DialogContent>
++      </Dialog>
++    );
++  }
++
++  return (
++    <Dialog open={isOpen} onOpenChange={onClose}>
++      <DialogContent className="sm:max-w-[425px]">
++        <DialogHeader>
++          <DialogTitle>
++            {mode === 'login' && 'Anmelden'}
++            {mode === 'register' && 'Registrieren'}
++            {mode === 'forgot' && 'Passwort vergessen'}
++          </DialogTitle>
++          <DialogDescription>
++            {mode === 'login' && 'Melde dich an, um deine Berechnungen zu speichern.'}
++            {mode === 'register' && 'Erstelle ein Konto, um deine Berechnungen zu speichern.'}
++            {mode === 'forgot' && 'Gib deine E-Mail-Adresse ein, um dein Passwort zurückzusetzen.'}
++          </DialogDescription>
++        </DialogHeader>
++
++        <form onSubmit={handleSubmit} className="space-y-4">
++          {error && (
++            <Alert variant="destructive">
++              <AlertCircle className="h-4 w-4" />
++              <AlertDescription>{error}</AlertDescription>
++            </Alert>
++          )}
++
++          {success && (
++            <Alert>
++              <AlertDescription>{success}</AlertDescription>
++            </Alert>
++          )}
++
++          <div className="space-y-2">
++            <Label htmlFor="email">E-Mail</Label>
++            <Input
++              id="email"
++              type="email"
++              value={email}
++              onChange={(e) => setEmail(e.target.value)}
++              placeholder="email@beispiel.de"
++              required
++            />
++          </div>
++
++          {mode !== 'forgot' && (
++            <div className="space-y-2">
++              <Label htmlFor="password">Passwort</Label>
++              <Input
++                id="password"
++                type="password"
++                value={password}
++                onChange={(e) => setPassword(e.target.value)}
++                placeholder="••••••••"
++                required
++                minLength={6}
++              />
++            </div>
++          )}
++
++          <Button type="submit" className="w-full" disabled={loading}>
++            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
++            {mode === 'login' && 'Anmelden'}
++            {mode === 'register' && 'Registrieren'}
++            {mode === 'forgot' && 'Link senden'}
++          </Button>
++
++          <div className="flex flex-col gap-2 text-sm text-center">
++            {mode === 'login' && (
++              <>
++                <button
++                  type="button"
++                  onClick={() => switchMode('forgot')}
++                  className="text-primary hover:underline"
++                >
++                  Passwort vergessen?
++                </button>
++                <span className="text-muted-foreground">
++                  Noch kein Konto?{' '}
++                  <button
++                    type="button"
++                    onClick={() => switchMode('register')}
++                    className="text-primary hover:underline"
++                  >
++                    Registrieren
++                  </button>
++                </span>
++              </>
++            )}
++            {mode === 'register' && (
++              <span className="text-muted-foreground">
++                Bereits ein Konto?{' '}
++                <button
++                  type="button"
++                  onClick={() => switchMode('login')}
++                  className="text-primary hover:underline"
++                >
++                  Anmelden
++                </button>
++              </span>
++            )}
++            {mode === 'forgot' && (
++              <button
++                type="button"
++                onClick={() => switchMode('login')}
++                className="text-primary hover:underline"
++              >
++                Zurück zur Anmeldung
++              </button>
++            )}
++          </div>
++        </form>
++      </DialogContent>
++    </Dialog>
++  );
++};
+diff --git a/src/components/CrossSellBanner.tsx b/src/components/CrossSellBanner.tsx
+new file mode 100644
+index 0000000..7351823
+--- /dev/null
++++ b/src/components/CrossSellBanner.tsx
+@@ -0,0 +1,69 @@
++import { ExternalLink, Calculator, Scale, CheckCircle } from 'lucide-react';
++import { Button } from '@/components/ui/button';
++import { Card, CardContent } from '@/components/ui/card';
++
++const fintuttoTools = [
++  {
++    name: 'Kautions-Rechner',
++    description: 'Berechne deine Mietkaution',
++    icon: Calculator,
++    url: 'https://fintutto.de/kautions-rechner'
++  },
++  {
++    name: 'Mieterhöhungs-Check',
++    description: 'Prüfe deine Mieterhöhung',
++    icon: CheckCircle,
++    url: 'https://fintutto.de/mieterhoehungs-check'
++  },
++  {
++    name: 'Kündigungsfrist-Check',
++    description: 'Berechne deine Kündigungsfrist',
++    icon: Scale,
++    url: 'https://fintutto.de/kuendigungsfrist-check'
++  }
++];
++
++export const CrossSellBanner = () => {
++  return (
++    <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
++      <CardContent className="p-4">
++        <div className="space-y-4">
++          <div>
++            <h3 className="font-semibold text-foreground">Weitere Fintutto Tools</h3>
++            <p className="text-sm text-muted-foreground">
++              Entdecke unsere kostenlosen Rechner und Checker
++            </p>
++          </div>
++
++          <div className="grid gap-3">
++            {fintuttoTools.map((tool) => (
++              <a
++                key={tool.name}
++                href={tool.url}
++                target="_blank"
++                rel="noopener noreferrer"
++                className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary/10 transition-colors"
++              >
++                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
++                  <tool.icon className="h-4 w-4 text-primary" />
++                </div>
++                <div className="flex-1 min-w-0">
++                  <p className="text-sm font-medium text-foreground">{tool.name}</p>
++                  <p className="text-xs text-muted-foreground">{tool.description}</p>
++                </div>
++                <ExternalLink className="h-4 w-4 text-muted-foreground" />
++              </a>
++            ))}
++          </div>
++
++          <Button variant="outline" size="sm" className="w-full" asChild>
++            <a href="https://fintutto.de" target="_blank" rel="noopener noreferrer">
++              Alle Tools ansehen
++              <ExternalLink className="h-3 w-3 ml-2" />
++            </a>
++          </Button>
++        </div>
++      </CardContent>
++    </Card>
++  );
++};
+diff --git a/src/components/Header.tsx b/src/components/Header.tsx
+new file mode 100644
+index 0000000..5828acb
+--- /dev/null
++++ b/src/components/Header.tsx
+@@ -0,0 +1,139 @@
++import { Moon, Sun, LogIn, LogOut, Scale, FolderOpen, CreditCard, Settings } from 'lucide-react';
++import { Button } from '@/components/ui/button';
++import { useAuth } from '@/contexts/AuthContext';
++import { Link, useLocation } from 'react-router-dom';
++import { useState, useEffect } from 'react';
++import {
++  DropdownMenu,
++  DropdownMenuContent,
++  DropdownMenuItem,
++  DropdownMenuSeparator,
++  DropdownMenuTrigger,
++} from '@/components/ui/dropdown-menu';
++import { createPortalSession } from '@/lib/stripe';
++import { useSubscription } from '@/hooks/useSubscription';
++import { useToast } from '@/hooks/use-toast';
++
++interface HeaderProps {
++  onLoginClick: () => void;
++}
++
++export const Header = ({ onLoginClick }: HeaderProps) => {
++  const { user, signOut } = useAuth();
++  const { subscription, plan } = useSubscription();
++  const { toast } = useToast();
++  const location = useLocation();
++  const [isDark, setIsDark] = useState(false);
++
++  useEffect(() => {
++    const isDarkMode = document.documentElement.classList.contains('dark');
++    setIsDark(isDarkMode);
++  }, []);
++
++  const toggleDarkMode = () => {
++    document.documentElement.classList.toggle('dark');
++    setIsDark(!isDark);
++  };
++
++  const handleManageSubscription = async () => {
++    const result = await createPortalSession(window.location.href);
++    if ('error' in result) {
++      toast({
++        title: 'Fehler',
++        description: result.error,
++        variant: 'destructive'
++      });
++      return;
++    }
++    window.location.href = result.url;
++  };
++
++  return (
++    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
++      <div className="container flex h-16 items-center justify-between">
++        <Link to="/" className="flex items-center gap-2">
++          <span className="text-2xl font-bold gradient-text">Fintutto</span>
++        </Link>
++
++        <nav className="hidden md:flex items-center gap-6">
++          <Link
++            to="/"
++            className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary ${
++              location.pathname === '/' ? 'text-primary' : 'text-muted-foreground'
++            }`}
++          >
++            <Scale className="h-4 w-4" />
++            Kautions-Rechner
++          </Link>
++          {user && (
++            <Link
++              to="/berechnungen"
++              className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary ${
++                location.pathname === '/berechnungen' ? 'text-primary' : 'text-muted-foreground'
++              }`}
++            >
++              <FolderOpen className="h-4 w-4" />
++              Meine Berechnungen
++            </Link>
++          )}
++          <Link
++            to="/pricing"
++            className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary ${
++              location.pathname === '/pricing' ? 'text-primary' : 'text-muted-foreground'
++            }`}
++          >
++            <CreditCard className="h-4 w-4" />
++            Preise
++          </Link>
++        </nav>
++
++        <div className="flex items-center gap-2">
++          <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
++            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
++          </Button>
++
++          {user ? (
++            <DropdownMenu>
++              <DropdownMenuTrigger asChild>
++                <Button variant="outline" size="sm">
++                  <Settings className="h-4 w-4 mr-2" />
++                  <span className="hidden sm:inline max-w-32 truncate">
++                    {user.email}
++                  </span>
++                </Button>
++              </DropdownMenuTrigger>
++              <DropdownMenuContent align="end" className="w-56">
++                <DropdownMenuItem disabled className="text-xs text-muted-foreground">
++                  Plan: {plan === 'business' ? 'Business' : plan === 'pro' ? 'Pro' : 'Free'}
++                </DropdownMenuItem>
++                <DropdownMenuSeparator />
++                {subscription?.stripe_subscription_id && (
++                  <DropdownMenuItem onClick={handleManageSubscription}>
++                    <CreditCard className="h-4 w-4 mr-2" />
++                    Abo verwalten
++                  </DropdownMenuItem>
++                )}
++                <DropdownMenuItem asChild>
++                  <Link to="/pricing">
++                    <CreditCard className="h-4 w-4 mr-2" />
++                    {plan === 'free' ? 'Upgrade' : 'Pläne ansehen'}
++                  </Link>
++                </DropdownMenuItem>
++                <DropdownMenuSeparator />
++                <DropdownMenuItem onClick={signOut}>
++                  <LogOut className="h-4 w-4 mr-2" />
++                  Abmelden
++                </DropdownMenuItem>
++              </DropdownMenuContent>
++            </DropdownMenu>
++          ) : (
++            <Button onClick={onLoginClick} size="sm">
++              <LogIn className="h-4 w-4 mr-2" />
++              Anmelden
++            </Button>
++          )}
++        </div>
++      </div>
++    </header>
++  );
++};
+diff --git a/src/components/pricing/BillingToggle.tsx b/src/components/pricing/BillingToggle.tsx
+new file mode 100644
+index 0000000..40c5982
+--- /dev/null
++++ b/src/components/pricing/BillingToggle.tsx
+@@ -0,0 +1,41 @@
++import { Switch } from '@/components/ui/switch';
++import { Label } from '@/components/ui/label';
++import { Badge } from '@/components/ui/badge';
++
++interface BillingToggleProps {
++  isYearly: boolean;
++  onToggle: (yearly: boolean) => void;
++}
++
++export const BillingToggle = ({ isYearly, onToggle }: BillingToggleProps) => {
++  return (
++    <div className="flex items-center justify-center gap-4">
++      <Label 
++        htmlFor="billing-toggle" 
++        className={`text-sm font-medium cursor-pointer transition-colors ${
++          !isYearly ? 'text-foreground' : 'text-muted-foreground'
++        }`}
++      >
++        Monatlich
++      </Label>
++      <Switch
++        id="billing-toggle"
++        checked={isYearly}
++        onCheckedChange={onToggle}
++      />
++      <div className="flex items-center gap-2">
++        <Label 
++          htmlFor="billing-toggle" 
++          className={`text-sm font-medium cursor-pointer transition-colors ${
++            isYearly ? 'text-foreground' : 'text-muted-foreground'
++          }`}
++        >
++          Jährlich
++        </Label>
++        <Badge variant="secondary" className="text-xs">
++          20% sparen
++        </Badge>
++      </div>
++    </div>
++  );
++};
+diff --git a/src/components/pricing/PricingCard.tsx b/src/components/pricing/PricingCard.tsx
+new file mode 100644
+index 0000000..ea88d16
+--- /dev/null
++++ b/src/components/pricing/PricingCard.tsx
+@@ -0,0 +1,114 @@
++import { Check } from 'lucide-react';
++import { Button } from '@/components/ui/button';
++import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
++import { Badge } from '@/components/ui/badge';
++import { PricingPlan, PlanId } from '@/types/subscription';
++import { formatPrice } from '@/lib/stripe';
++import { cn } from '@/lib/utils';
++
++interface PricingCardProps {
++  plan: PricingPlan;
++  isYearly: boolean;
++  currentPlan: PlanId;
++  isLoggedIn: boolean;
++  onSelect: (plan: PricingPlan) => void;
++  loading?: boolean;
++}
++
++export const PricingCard = ({
++  plan,
++  isYearly,
++  currentPlan,
++  isLoggedIn,
++  onSelect,
++  loading = false
++}: PricingCardProps) => {
++  const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
++  const monthlyEquivalent = isYearly ? plan.yearlyPrice / 12 : plan.monthlyPrice;
++  const isCurrentPlan = currentPlan === plan.id;
++  const isFree = plan.id === 'free';
++  
++  const planOrder: Record<PlanId, number> = { free: 0, pro: 1, business: 2 };
++  const isDowngrade = planOrder[plan.id] < planOrder[currentPlan];
++  const isUpgrade = planOrder[plan.id] > planOrder[currentPlan];
++
++  const getButtonText = () => {
++    if (!isLoggedIn) return 'Registrieren';
++    if (isCurrentPlan) return 'Aktueller Plan';
++    if (isFree) return 'Kostenlos nutzen';
++    if (isDowngrade) return 'Downgrade';
++    return 'Jetzt upgraden';
++  };
++
++  const getButtonVariant = () => {
++    if (isCurrentPlan) return 'outline' as const;
++    if (plan.highlighted) return 'default' as const;
++    return 'outline' as const;
++  };
++
++  return (
++    <Card className={cn(
++      'relative flex flex-col transition-all duration-200',
++      plan.highlighted && 'border-primary shadow-lg scale-105',
++      isCurrentPlan && 'border-primary/50'
++    )}>
++      {plan.highlighted && (
++        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 gradient-primary">
++          Beliebteste Wahl
++        </Badge>
++      )}
++      
++      <CardHeader className="text-center pb-2">
++        <CardTitle className="text-2xl">{plan.name}</CardTitle>
++        <CardDescription>{plan.description}</CardDescription>
++      </CardHeader>
++      
++      <CardContent className="flex-1 space-y-6">
++        <div className="text-center">
++          <div className="flex items-baseline justify-center gap-1">
++            <span className="text-4xl font-bold">
++              {formatPrice(monthlyEquivalent)}
++            </span>
++            {!isFree && <span className="text-muted-foreground">/Monat</span>}
++          </div>
++          
++          {isYearly && !isFree && (
++            <div className="mt-1 space-y-1">
++              <p className="text-sm text-muted-foreground">
++                <span className="line-through">{formatPrice(plan.monthlyPrice * 12)}</span>
++                {' '}
++                <span className="text-primary font-medium">{formatPrice(price)}/Jahr</span>
++              </p>
++              <Badge variant="secondary" className="text-xs">
++                Spare {formatPrice(plan.monthlyPrice * 12 - price)}
++              </Badge>
++            </div>
++          )}
++        </div>
++
++        <ul className="space-y-3">
++          {plan.features.map((feature, index) => (
++            <li key={index} className="flex items-start gap-3">
++              <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
++              <span className="text-sm">{feature}</span>
++            </li>
++          ))}
++        </ul>
++      </CardContent>
++
++      <CardFooter>
++        <Button
++          className={cn(
++            'w-full',
++            plan.highlighted && !isCurrentPlan && 'gradient-primary'
++          )}
++          variant={getButtonVariant()}
++          disabled={isCurrentPlan || loading}
++          onClick={() => onSelect(plan)}
++        >
++          {loading ? 'Wird geladen...' : getButtonText()}
++        </Button>
++      </CardFooter>
++    </Card>
++  );
++};
+diff --git a/src/contexts/AuthContext.tsx b/src/contexts/AuthContext.tsx
+new file mode 100644
+index 0000000..1b881e0
+--- /dev/null
++++ b/src/contexts/AuthContext.tsx
+@@ -0,0 +1,85 @@
++import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
++import { User, Session } from '@supabase/supabase-js';
++import { supabase } from '@/integrations/supabase/client';
++
++interface AuthContextType {
++  user: User | null;
++  session: Session | null;
++  loading: boolean;
++  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
++  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
++  signOut: () => Promise<void>;
++  resetPassword: (email: string) => Promise<{ error: Error | null }>;
++  isConfigured: boolean;
++}
++
++const AuthContext = createContext<AuthContextType | undefined>(undefined);
++
++export const AuthProvider = ({ children }: { children: ReactNode }) => {
++  const [user, setUser] = useState<User | null>(null);
++  const [session, setSession] = useState<Session | null>(null);
++  const [loading, setLoading] = useState(true);
++  const isConfigured = true; // Always configured via integrations/supabase/client
++
++  useEffect(() => {
++    // Set up auth state listener BEFORE checking session
++    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
++      setSession(session);
++      setUser(session?.user ?? null);
++      setLoading(false);
++    });
++
++    // Check current session
++    supabase.auth.getSession().then(({ data: { session } }) => {
++      setSession(session);
++      setUser(session?.user ?? null);
++      setLoading(false);
++    });
++
++    return () => subscription.unsubscribe();
++  }, []);
++
++  const signUp = async (email: string, password: string) => {
++    const { error } = await supabase.auth.signUp({
++      email,
++      password,
++      options: {
++        emailRedirectTo: window.location.origin,
++      },
++    });
++    return { error };
++  };
++
++  const signIn = async (email: string, password: string) => {
++    const { error } = await supabase.auth.signInWithPassword({
++      email,
++      password,
++    });
++    return { error };
++  };
++
++  const signOut = async () => {
++    await supabase.auth.signOut();
++  };
++
++  const resetPassword = async (email: string) => {
++    const { error } = await supabase.auth.resetPasswordForEmail(email, {
++      redirectTo: `${window.location.origin}/reset-password`,
++    });
++    return { error };
++  };
++
++  return (
++    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, resetPassword, isConfigured }}>
++      {children}
++    </AuthContext.Provider>
++  );
++};
++
++export const useAuth = () => {
++  const context = useContext(AuthContext);
++  if (context === undefined) {
++    throw new Error('useAuth must be used within an AuthProvider');
++  }
++  return context;
++};
+diff --git a/src/contexts/ProductsContext.tsx b/src/contexts/ProductsContext.tsx
+new file mode 100644
+index 0000000..4e2a49f
+--- /dev/null
++++ b/src/contexts/ProductsContext.tsx
+@@ -0,0 +1,41 @@
++import { createContext, useContext, ReactNode } from 'react';
++import { useProducts, Product } from '@/hooks/useProducts';
++
++interface ProductsContextType {
++  products: Product[];
++  loading: boolean;
++  error: string | null;
++  refetch: () => Promise<void>;
++  getProductBySlug: (slug: string) => Product | undefined;
++  getProductById: (id: string) => Product | undefined;
++}
++
++const ProductsContext = createContext<ProductsContextType | undefined>(undefined);
++
++export const ProductsProvider = ({ children }: { children: ReactNode }) => {
++  const { products, loading, error, refetch } = useProducts();
++
++  const getProductBySlug = (slug: string) => products.find(p => p.slug === slug);
++  const getProductById = (id: string) => products.find(p => p.id === id);
++
++  return (
++    <ProductsContext.Provider value={{ 
++      products, 
++      loading, 
++      error, 
++      refetch,
++      getProductBySlug,
++      getProductById
++    }}>
++      {children}
++    </ProductsContext.Provider>
++  );
++};
++
++export const useProductsContext = () => {
++  const context = useContext(ProductsContext);
++  if (context === undefined) {
++    throw new Error('useProductsContext must be used within a ProductsProvider');
++  }
++  return context;
++};
+diff --git a/src/hooks/useSubscription.ts b/src/hooks/useSubscription.ts
+new file mode 100644
+index 0000000..1a93d92
+--- /dev/null
++++ b/src/hooks/useSubscription.ts
+@@ -0,0 +1,71 @@
++import { useState, useEffect } from 'react';
++import { useAuth } from '@/contexts/AuthContext';
++import { supabase } from '@/integrations/supabase/client';
++import { UserSubscription, PlanId } from '@/types/subscription';
++
++interface UseSubscriptionReturn {
++  subscription: UserSubscription | null;
++  plan: PlanId;
++  isPro: boolean;
++  isBusiness: boolean;
++  isActive: boolean;
++  loading: boolean;
++  refetch: () => Promise<void>;
++}
++
++const APP_ID = 'fintutto';
++
++export const useSubscription = (): UseSubscriptionReturn => {
++  const { user } = useAuth();
++  const [subscription, setSubscription] = useState<UserSubscription | null>(null);
++  const [loading, setLoading] = useState(true);
++
++  const fetchSubscription = async () => {
++    if (!user) {
++      setSubscription(null);
++      setLoading(false);
++      return;
++    }
++
++      try {
++        // eslint-disable-next-line @typescript-eslint/no-explicit-any
++        const { data, error } = await (supabase as any)
++          .from('user_subscriptions')
++          .select('*')
++          .eq('user_id', user.id)
++          .eq('app_id', APP_ID)
++          .maybeSingle();
++
++      if (error) {
++        console.error('Error fetching subscription:', error);
++        setSubscription(null);
++      } else {
++        setSubscription(data as UserSubscription | null);
++      }
++    } catch (err) {
++      console.error('Error fetching subscription:', err);
++      setSubscription(null);
++    } finally {
++      setLoading(false);
++    }
++  };
++
++  useEffect(() => {
++    fetchSubscription();
++  }, [user]);
++
++  const plan: PlanId = subscription?.plan_id || 'free';
++  const isActive = subscription?.status === 'active' || subscription?.status === 'trialing';
++  const isPro = isActive && ['pro', 'business'].includes(plan);
++  const isBusiness = isActive && plan === 'business';
++
++  return {
++    subscription,
++    plan,
++    isPro,
++    isBusiness,
++    isActive,
++    loading,
++    refetch: fetchSubscription
++  };
++};
+diff --git a/src/index.css b/src/index.css
+index a106be5..2e232d8 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -15,7 +15,7 @@
+     --popover: 0 0% 100%;
+     --popover-foreground: 222 47% 11%;
+ 
+-    --primary: 217 91% 40%;
++    --primary: 160 84% 39%;
+     --primary-foreground: 0 0% 100%;
+ 
+     --secondary: 210 40% 96%;
+@@ -62,7 +62,7 @@
+     --popover: 222 47% 13%;
+     --popover-foreground: 210 40% 98%;
+ 
+-    --primary: 217 91% 60%;
++    --primary: 160 84% 45%;
+     --primary-foreground: 222 47% 11%;
+ 
+     --secondary: 217 33% 17%;
+@@ -101,6 +101,14 @@
+ }
+ 
+ @layer components {
++  .gradient-primary {
++    @apply bg-gradient-to-r from-emerald-600 to-emerald-500;
++  }
++
++  .gradient-text {
++    @apply bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent;
++  }
++
+   .result-card {
+     @apply bg-card rounded-xl border border-border p-6 shadow-sm;
+   }
+diff --git a/src/lib/stripe.ts b/src/lib/stripe.ts
+new file mode 100644
+index 0000000..cac972f
+--- /dev/null
++++ b/src/lib/stripe.ts
+@@ -0,0 +1,82 @@
++import { supabase } from '@/integrations/supabase/client';
++
++const SUPABASE_URL = 'https://aaefocdqgdgexkcrjhks.supabase.co';
++
++export const createCheckoutSession = async (
++  priceId: string,
++  userId: string,
++  userEmail: string,
++  successUrl: string,
++  cancelUrl: string
++): Promise<{ url: string } | { error: string }> => {
++  try {
++    const { data: { session } } = await supabase.auth.getSession();
++    
++    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
++      method: 'POST',
++      headers: {
++        'Content-Type': 'application/json',
++        'Authorization': `Bearer ${session?.access_token}`,
++      },
++      body: JSON.stringify({
++        priceId,
++        userId,
++        userEmail,
++        successUrl,
++        cancelUrl
++      })
++    });
++
++    const result = await response.json();
++    
++    if (!response.ok) {
++      return { error: result.error || 'Fehler beim Erstellen der Checkout-Session' };
++    }
++
++    return { url: result.url };
++  } catch (error) {
++    console.error('Checkout session error:', error);
++    return { error: 'Verbindungsfehler' };
++  }
++};
++
++export const createPortalSession = async (
++  returnUrl: string
++): Promise<{ url: string } | { error: string }> => {
++  try {
++    const { data: { session } } = await supabase.auth.getSession();
++    
++    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-portal-session`, {
++      method: 'POST',
++      headers: {
++        'Content-Type': 'application/json',
++        'Authorization': `Bearer ${session?.access_token}`,
++      },
++      body: JSON.stringify({ returnUrl })
++    });
++
++    const result = await response.json();
++    
++    if (!response.ok) {
++      return { error: result.error || 'Fehler beim Erstellen der Portal-Session' };
++    }
++
++    return { url: result.url };
++  } catch (error) {
++    console.error('Portal session error:', error);
++    return { error: 'Verbindungsfehler' };
++  }
++};
++
++export const formatPrice = (price: number, interval?: 'month' | 'year'): string => {
++  const formatted = new Intl.NumberFormat('de-DE', {
++    style: 'currency',
++    currency: 'EUR'
++  }).format(price);
++  
++  if (interval) {
++    return `${formatted}/${interval === 'month' ? 'Monat' : 'Jahr'}`;
++  }
++  
++  return formatted;
++};
+diff --git a/src/pages/Berechnungen.tsx b/src/pages/Berechnungen.tsx
+new file mode 100644
+index 0000000..08d1123
+--- /dev/null
++++ b/src/pages/Berechnungen.tsx
+@@ -0,0 +1,323 @@
++import { useState, useEffect } from 'react';
++import { useNavigate } from 'react-router-dom';
++import { Header } from '@/components/Header';
++import { AuthModal } from '@/components/AuthModal';
++import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
++import { Button } from '@/components/ui/button';
++import { Badge } from '@/components/ui/badge';
++import { Progress } from '@/components/ui/progress';
++import { useAuth } from '@/contexts/AuthContext';
++import { useSubscription } from '@/hooks/useSubscription';
++import { supabase } from '@/integrations/supabase/client';
++import { Loader2, Trash2, Copy, ArrowRight, FolderOpen, Crown } from 'lucide-react';
++import { formatCurrency, formatNumber } from '@/hooks/useCalculator';
++import type { SavedCalculation } from '@/types/calculator';
++import { useToast } from '@/hooks/use-toast';
++import { PLAN_LIMITS } from '@/lib/subscriptionLimits';
++import { getGenericErrorMessage, CALCULATION_NAME_MAX_LENGTH } from '@/lib/errorHandler';
++import {
++  AlertDialog,
++  AlertDialogAction,
++  AlertDialogCancel,
++  AlertDialogContent,
++  AlertDialogDescription,
++  AlertDialogFooter,
++  AlertDialogHeader,
++  AlertDialogTitle,
++} from '@/components/ui/alert-dialog';
++
++const Berechnungen = () => {
++  const { user, loading: authLoading } = useAuth();
++  const { plan, isPro, loading: subLoading } = useSubscription();
++  const navigate = useNavigate();
++  const { toast } = useToast();
++  const [showAuthModal, setShowAuthModal] = useState(false);
++  const [calculations, setCalculations] = useState<SavedCalculation[]>([]);
++  const [loading, setLoading] = useState(true);
++  const [deleteId, setDeleteId] = useState<string | null>(null);
++  
++  const maxCalcs = PLAN_LIMITS[plan]?.maxCalculations || 3;
++  const usagePercent = maxCalcs === Infinity ? 0 : (calculations.length / maxCalcs) * 100;
++
++  useEffect(() => {
++    if (!authLoading && !user) {
++      navigate('/');
++    }
++  }, [user, authLoading, navigate]);
++
++  useEffect(() => {
++    const fetchCalculations = async () => {
++      if (!user) {
++        setLoading(false);
++        return;
++      }
++
++      try {
++        // eslint-disable-next-line @typescript-eslint/no-explicit-any
++        const { data, error } = await (supabase
++          .from('calculations') as any)
++          .select('*')
++          .eq('user_id', user.id)
++          .order('created_at', { ascending: false });
++
++        if (error) throw error;
++        setCalculations((data || []) as SavedCalculation[]);
++      } catch (error: unknown) {
++        toast({
++          title: 'Fehler',
++          description: getGenericErrorMessage(error, 'load'),
++          variant: 'destructive',
++        });
++      } finally {
++        setLoading(false);
++      }
++    };
++
++    if (user) {
++      fetchCalculations();
++    }
++  }, [user, toast]);
++
++  const handleLoad = (calculation: SavedCalculation) => {
++    // Store in sessionStorage and navigate
++    sessionStorage.setItem('loadedCalculation', JSON.stringify(calculation.input_data));
++    navigate('/');
++    toast({
++      title: 'Geladen',
++      description: `"${calculation.name}" wurde geladen.`,
++    });
++  };
++
++  const handleDuplicate = async (calculation: SavedCalculation) => {
++    if (!user) return;
++
++    try {
++      // eslint-disable-next-line @typescript-eslint/no-explicit-any
++      const { error } = await (supabase.from('calculations') as any).insert({
++        user_id: user.id,
++        name: `${calculation.name} (Kopie)`,
++        input_data: calculation.input_data,
++        results: calculation.results,
++      });
++
++      if (error) throw error;
++
++      // Refresh list
++      // eslint-disable-next-line @typescript-eslint/no-explicit-any
++      const { data } = await (supabase
++        .from('calculations') as any)
++        .select('*')
++        .eq('user_id', user.id)
++        .order('created_at', { ascending: false });
++
++      setCalculations((data || []) as SavedCalculation[]);
++      toast({
++        title: 'Dupliziert',
++        description: `"${calculation.name}" wurde kopiert.`,
++      });
++    } catch (error: unknown) {
++      toast({
++        title: 'Fehler',
++        description: getGenericErrorMessage(error, 'duplicate'),
++        variant: 'destructive',
++      });
++    }
++  };
++
++  const handleDelete = async () => {
++    if (!deleteId) return;
++
++    try {
++      const { error } = await supabase
++        .from('calculations')
++        .delete()
++        .eq('id', deleteId);
++
++      if (error) throw error;
++
++      setCalculations(calculations.filter((c) => c.id !== deleteId));
++      toast({
++        title: 'Gelöscht',
++        description: 'Berechnung wurde gelöscht.',
++      });
++    } catch (error: unknown) {
++      toast({
++        title: 'Fehler',
++        description: getGenericErrorMessage(error, 'delete'),
++        variant: 'destructive',
++      });
++    } finally {
++      setDeleteId(null);
++    }
++  };
++
++  const formatDate = (dateString: string) => {
++    return new Date(dateString).toLocaleDateString('de-DE', {
++      day: '2-digit',
++      month: '2-digit',
++      year: 'numeric',
++      hour: '2-digit',
++      minute: '2-digit',
++    });
++  };
++
++  if (authLoading || loading || subLoading) {
++    return (
++      <div className="min-h-screen bg-background">
++        <Header onLoginClick={() => setShowAuthModal(true)} />
++        <div className="container py-12 flex justify-center">
++          <Loader2 className="h-8 w-8 animate-spin text-primary" />
++        </div>
++      </div>
++    );
++  }
++
++  return (
++    <div className="min-h-screen bg-background">
++      <Header onLoginClick={() => setShowAuthModal(true)} />
++
++      <main className="container py-6">
++        <div className="mb-6">
++          <div className="flex items-center justify-between mb-2">
++            <h1 className="text-2xl font-bold">Meine Berechnungen</h1>
++            <Badge variant={isPro ? 'default' : 'secondary'}>
++              {plan === 'free' ? 'Free' : plan === 'pro' ? 'Pro' : 'Business'}
++            </Badge>
++          </div>
++          <p className="text-muted-foreground">
++            Alle deine gespeicherten Immobilien-Berechnungen
++          </p>
++          
++          {/* Usage indicator for free plan */}
++          {plan === 'free' && (
++            <div className="mt-4 p-4 bg-muted rounded-lg">
++              <div className="flex items-center justify-between mb-2">
++                <span className="text-sm font-medium">
++                  Speicherplätze: {calculations.length} / {maxCalcs}
++                </span>
++                {calculations.length >= maxCalcs && (
++                  <Button 
++                    size="sm" 
++                    variant="default"
++                    onClick={() => navigate('/pricing')}
++                    className="gradient-primary"
++                  >
++                    <Crown className="h-4 w-4 mr-1" />
++                    Upgrade
++                  </Button>
++                )}
++              </div>
++              <Progress value={usagePercent} className="h-2" />
++              {calculations.length >= maxCalcs - 1 && calculations.length < maxCalcs && (
++                <p className="text-xs text-muted-foreground mt-2">
++                  Noch 1 Speicherplatz frei. Upgrade für unbegrenzte Berechnungen.
++                </p>
++              )}
++            </div>
++          )}
++        </div>
++
++        {calculations.length === 0 ? (
++          <Card>
++            <CardContent className="py-12 text-center">
++              <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
++              <h3 className="text-lg font-medium mb-2">Noch keine Berechnungen</h3>
++              <p className="text-muted-foreground mb-4">
++                Du hast noch keine Berechnungen gespeichert.
++              </p>
++              <Button onClick={() => navigate('/')}>
++                Neue Berechnung starten
++              </Button>
++            </CardContent>
++          </Card>
++        ) : (
++          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
++            {calculations.map((calculation) => (
++              <Card key={calculation.id} className="hover:shadow-md transition-shadow">
++                <CardHeader className="pb-2">
++                  <CardTitle className="text-lg line-clamp-1" title={calculation.name}>
++                    {calculation.name.slice(0, CALCULATION_NAME_MAX_LENGTH)}
++                  </CardTitle>
++                  <p className="text-xs text-muted-foreground">
++                    {formatDate(calculation.created_at)}
++                  </p>
++                </CardHeader>
++                <CardContent>
++                  <div className="space-y-2 mb-4">
++                    <div className="flex justify-between text-sm">
++                      <span className="text-muted-foreground">Kaufpreis</span>
++                      <span className="font-mono font-medium">
++                        {formatCurrency(calculation.input_data.kaufpreis)}
++                      </span>
++                    </div>
++                    <div className="flex justify-between text-sm">
++                      <span className="text-muted-foreground">Brutto-Rendite</span>
++                      <span className="font-mono font-medium">
++                        {formatNumber(calculation.results.bruttoMietrendite)}%
++                      </span>
++                    </div>
++                    <div className="flex justify-between text-sm">
++                      <span className="text-muted-foreground">Cashflow/Monat</span>
++                      <span className={`font-mono font-medium ${
++                        calculation.results.monatlicheCashflow >= 0 ? 'text-success' : 'text-destructive'
++                      }`}>
++                        {formatCurrency(calculation.results.monatlicheCashflow)}
++                      </span>
++                    </div>
++                  </div>
++
++                  <div className="flex gap-2">
++                    <Button
++                      variant="default"
++                      size="sm"
++                      className="flex-1"
++                      onClick={() => handleLoad(calculation)}
++                    >
++                      <ArrowRight className="h-4 w-4 mr-1" />
++                      Laden
++                    </Button>
++                    <Button
++                      variant="outline"
++                      size="sm"
++                      onClick={() => handleDuplicate(calculation)}
++                    >
++                      <Copy className="h-4 w-4" />
++                    </Button>
++                    <Button
++                      variant="outline"
++                      size="sm"
++                      onClick={() => setDeleteId(calculation.id)}
++                    >
++                      <Trash2 className="h-4 w-4 text-destructive" />
++                    </Button>
++                  </div>
++                </CardContent>
++              </Card>
++            ))}
++          </div>
++        )}
++      </main>
++
++      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
++
++      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
++        <AlertDialogContent>
++          <AlertDialogHeader>
++            <AlertDialogTitle>Berechnung löschen?</AlertDialogTitle>
++            <AlertDialogDescription>
++              Diese Aktion kann nicht rückgängig gemacht werden.
++            </AlertDialogDescription>
++          </AlertDialogHeader>
++          <AlertDialogFooter>
++            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
++            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
++              Löschen
++            </AlertDialogAction>
++          </AlertDialogFooter>
++        </AlertDialogContent>
++      </AlertDialog>
++    </div>
++  );
++};
++
++export default Berechnungen;
+diff --git a/src/pages/Index.tsx b/src/pages/Index.tsx
+index 8e71f24..4c91182 100644
+--- a/src/pages/Index.tsx
++++ b/src/pages/Index.tsx
+@@ -1,11 +1,15 @@
+ import { useState } from 'react';
+ import { Shield, Scale, Lock } from 'lucide-react';
++import { Header } from '@/components/Header';
++import { AuthModal } from '@/components/AuthModal';
+ import { KautionsForm } from '@/components/KautionsForm';
+ import { KautionsResult } from '@/components/KautionsResult';
++import { CrossSellBanner } from '@/components/CrossSellBanner';
+ import { checkKaution, KautionInput, KautionResult } from '@/lib/kautionsCheck';
+ 
+ const Index = () => {
+   const [result, setResult] = useState<KautionResult | null>(null);
++  const [showAuthModal, setShowAuthModal] = useState(false);
+ 
+   const handleSubmit = (data: KautionInput) => {
+     const checkResult = checkKaution(data);
+@@ -19,20 +23,20 @@ const Index = () => {
+ 
+   return (
+     <div className="min-h-screen bg-background">
+-      {/* Header */}
+-      <header className="border-b border-border bg-card">
+-        <div className="container max-w-3xl py-6">
+-          <div className="flex items-center gap-3">
+-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+-              <Shield className="h-6 w-6 text-primary-foreground" />
+-            </div>
+-            <div>
+-              <h1 className="text-2xl font-bold text-foreground">Kautions-Check</h1>
+-              <p className="text-sm text-muted-foreground">Prüfen Sie Ihre Mietkaution</p>
+-            </div>
++      <Header onLoginClick={() => setShowAuthModal(true)} />
++
++      {/* Hero Section */}
++      <div className="gradient-primary text-white py-8 px-4">
++        <div className="container max-w-3xl">
++          <div className="flex items-center gap-3 mb-2">
++            <Shield className="h-8 w-8" />
++            <h1 className="text-3xl md:text-4xl font-bold">Kautions-Check</h1>
+           </div>
++          <p className="text-white/80 text-lg">
++            Prüfen Sie Ihre Mietkaution – ist sie rechtlich korrekt?
++          </p>
+         </div>
+-      </header>
++      </div>
+ 
+       {/* Main Content */}
+       <main className="container max-w-3xl py-8 px-4">
+@@ -58,9 +62,21 @@ const Index = () => {
+             </div>
+ 
+             <KautionsForm onSubmit={handleSubmit} />
++
++            {/* Cross-Sell Banner */}
++            <div className="mt-8">
++              <CrossSellBanner />
++            </div>
+           </>
+         ) : (
+-          <KautionsResult result={result} onReset={handleReset} />
++          <>
++            <KautionsResult result={result} onReset={handleReset} />
++
++            {/* Cross-Sell Banner */}
++            <div className="mt-8">
++              <CrossSellBanner />
++            </div>
++          </>
+         )}
+       </main>
+ 
+@@ -71,6 +87,8 @@ const Index = () => {
+           <p className="mt-1">Diese Prüfung ersetzt keine Rechtsberatung.</p>
+         </div>
+       </footer>
++
++      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+     </div>
+   );
+ };
+diff --git a/src/pages/Pricing.tsx b/src/pages/Pricing.tsx
+new file mode 100644
+index 0000000..73f8408
+--- /dev/null
++++ b/src/pages/Pricing.tsx
+@@ -0,0 +1,135 @@
++import { useState } from 'react';
++import { useNavigate } from 'react-router-dom';
++import { Header } from '@/components/Header';
++import { BillingToggle } from '@/components/pricing/BillingToggle';
++import { PricingCard } from '@/components/pricing/PricingCard';
++import { useAuth } from '@/contexts/AuthContext';
++import { useSubscription } from '@/hooks/useSubscription';
++import { PRICING_PLANS, PricingPlan } from '@/types/subscription';
++import { createCheckoutSession, createPortalSession } from '@/lib/stripe';
++import { useToast } from '@/hooks/use-toast';
++import { AuthModal } from '@/components/AuthModal';
++
++const Pricing = () => {
++  const navigate = useNavigate();
++  const { user } = useAuth();
++  const { plan: currentPlan, subscription } = useSubscription();
++  const { toast } = useToast();
++  
++  const [isYearly, setIsYearly] = useState(false);
++  const [loading, setLoading] = useState<string | null>(null);
++  const [showAuthModal, setShowAuthModal] = useState(false);
++
++  const handleSelectPlan = async (plan: PricingPlan) => {
++    // Not logged in -> show auth modal
++    if (!user) {
++      setShowAuthModal(true);
++      return;
++    }
++
++    // Free plan -> no action needed
++    if (plan.id === 'free') {
++      toast({
++        title: 'Free Plan',
++        description: 'Du nutzt bereits den kostenlosen Plan.'
++      });
++      return;
++    }
++
++    // Current plan -> no action
++    if (plan.id === currentPlan) {
++      return;
++    }
++
++    // Has existing subscription -> open portal for changes
++    if (subscription?.stripe_subscription_id) {
++      setLoading(plan.id);
++      const result = await createPortalSession(window.location.href);
++      setLoading(null);
++      
++      if ('error' in result) {
++        toast({
++          title: 'Fehler',
++          description: result.error,
++          variant: 'destructive'
++        });
++        return;
++      }
++      
++      window.location.href = result.url;
++      return;
++    }
++
++    // New subscription -> create checkout session
++    setLoading(plan.id);
++    const priceId = isYearly ? plan.priceIdYearly : plan.priceIdMonthly;
++    
++    const result = await createCheckoutSession(
++      priceId,
++      user.id,
++      user.email || '',
++      `${window.location.origin}/success`,
++      `${window.location.origin}/pricing`
++    );
++    
++    setLoading(null);
++
++    if ('error' in result) {
++      toast({
++        title: 'Fehler',
++        description: result.error,
++        variant: 'destructive'
++      });
++      return;
++    }
++
++    window.location.href = result.url;
++  };
++
++  return (
++    <div className="min-h-screen flex flex-col bg-background">
++      <Header onLoginClick={() => setShowAuthModal(true)} />
++      
++      <main className="flex-1 container py-12">
++        <div className="text-center mb-12">
++          <h1 className="text-4xl font-bold mb-4">
++            Wählen Sie Ihren <span className="gradient-text">Plan</span>
++          </h1>
++          <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
++            Starten Sie kostenlos und upgraden Sie, wenn Sie mehr Funktionen benötigen.
++            Alle Pläne können jederzeit gekündigt werden.
++          </p>
++          
++          <BillingToggle isYearly={isYearly} onToggle={setIsYearly} />
++        </div>
++
++        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
++          {PRICING_PLANS.map((plan) => (
++            <PricingCard
++              key={plan.id}
++              plan={plan}
++              isYearly={isYearly}
++              currentPlan={currentPlan}
++              isLoggedIn={!!user}
++              onSelect={handleSelectPlan}
++              loading={loading === plan.id}
++            />
++          ))}
++        </div>
++
++        <div className="mt-16 text-center">
++          <p className="text-sm text-muted-foreground">
++            Alle Preise verstehen sich inklusive MwSt. • Sichere Zahlung via Stripe
++          </p>
++        </div>
++      </main>
++
++      <AuthModal 
++        isOpen={showAuthModal} 
++        onClose={() => setShowAuthModal(false)} 
++      />
++    </div>
++  );
++};
++
++export default Pricing;
+diff --git a/src/pages/Success.tsx b/src/pages/Success.tsx
+new file mode 100644
+index 0000000..496704b
+--- /dev/null
++++ b/src/pages/Success.tsx
+@@ -0,0 +1,111 @@
++import { useEffect, useState } from 'react';
++import { useNavigate } from 'react-router-dom';
++import { CheckCircle, Sparkles } from 'lucide-react';
++import { Button } from '@/components/ui/button';
++import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
++import { Header } from '@/components/Header';
++import { useSubscription } from '@/hooks/useSubscription';
++
++const Success = () => {
++  const navigate = useNavigate();
++  const { plan, refetch } = useSubscription();
++  const [showConfetti, setShowConfetti] = useState(true);
++
++  useEffect(() => {
++    // Refetch subscription to get updated plan
++    refetch();
++    
++    // Hide confetti after animation
++    const timer = setTimeout(() => setShowConfetti(false), 5000);
++    return () => clearTimeout(timer);
++  }, [refetch]);
++
++  const planName = plan === 'business' ? 'Business' : plan === 'pro' ? 'Pro' : 'Free';
++
++  return (
++    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
++      <Header onLoginClick={() => {}} />
++      
++      {/* Confetti Animation */}
++      {showConfetti && (
++        <div className="fixed inset-0 pointer-events-none z-50">
++          {[...Array(50)].map((_, i) => (
++            <div
++              key={i}
++              className="absolute animate-confetti"
++              style={{
++                left: `${Math.random() * 100}%`,
++                animationDelay: `${Math.random() * 2}s`,
++                animationDuration: `${2 + Math.random() * 2}s`
++              }}
++            >
++              <Sparkles 
++                className="h-4 w-4" 
++                style={{ 
++                  color: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'][Math.floor(Math.random() * 5)]
++                }} 
++              />
++            </div>
++          ))}
++        </div>
++      )}
++
++      <main className="flex-1 container flex items-center justify-center py-12">
++        <Card className="max-w-md w-full text-center">
++          <CardHeader className="pb-4">
++            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
++              <CheckCircle className="h-10 w-10 text-primary" />
++            </div>
++            <CardTitle className="text-2xl">
++              Willkommen bei <span className="gradient-text">{planName}</span>!
++            </CardTitle>
++            <CardDescription className="text-base">
++              Ihre Zahlung war erfolgreich. Vielen Dank für Ihr Vertrauen!
++            </CardDescription>
++          </CardHeader>
++          
++          <CardContent className="space-y-4">
++            <p className="text-muted-foreground">
++              Sie haben jetzt Zugriff auf alle {planName}-Funktionen. 
++              Entdecken Sie die erweiterten Möglichkeiten für Ihre Immobilien-Analysen.
++            </p>
++            
++            <div className="flex flex-col gap-2">
++              <Button 
++                onClick={() => navigate('/')}
++                className="w-full gradient-primary"
++              >
++                Zum Rechner
++              </Button>
++              <Button 
++                variant="outline"
++                onClick={() => navigate('/berechnungen')}
++                className="w-full"
++              >
++                Meine Berechnungen
++              </Button>
++            </div>
++          </CardContent>
++        </Card>
++      </main>
++
++      <style>{`
++        @keyframes confetti {
++          0% {
++            transform: translateY(-10vh) rotate(0deg);
++            opacity: 1;
++          }
++          100% {
++            transform: translateY(110vh) rotate(720deg);
++            opacity: 0;
++          }
++        }
++        .animate-confetti {
++          animation: confetti linear forwards;
++        }
++      `}</style>
++    </div>
++  );
++};
++
++export default Success;
+diff --git a/src/types/calculator.ts b/src/types/calculator.ts
+new file mode 100644
+index 0000000..d92c5af
+--- /dev/null
++++ b/src/types/calculator.ts
+@@ -0,0 +1,127 @@
++export interface CalculatorInputs {
++  // Adresse (Google Maps verifiziert)
++  adresse: string;
++  adresseVerifiziert: boolean;
++  placeId: string;
++  latitude: number | null;
++  longitude: number | null;
++
++  // Kaufdaten
++  kaufpreis: number;
++  bundesland: string;
++  grunderwerbsteuer: number;
++  notarkosten: number;
++  maklergebuehr: number;
++  grundbuchkosten: number;
++
++  // Mieteinnahmen
++  kaltmiete: number;
++  nebenkostenVorauszahlung: number;
++  mietausfallwagnis: number;
++
++  // Laufende Kosten
++  verwaltungskosten: number;
++  instandhaltungsruecklage: number;
++  wohnflaeche: number;
++  nichtUmlagefaehigeNebenkosten: number;
++
++  // Finanzierung
++  eigenkapital: number;
++  darlehenssumme: number;
++  zinssatz: number;
++  tilgungssatz: number;
++  zinsbindung: number;
++  autoBerechnung: boolean;
++}
++
++export interface CalculatorResults {
++  // Kaufnebenkosten
++  grunderwerbsteuerBetrag: number;
++  notarkostenBetrag: number;
++  maklergebuehrBetrag: number;
++  grundbuchkostenBetrag: number;
++  kaufnebenkostenGesamt: number;
++  gesamtinvestition: number;
++
++  // Renditen
++  bruttoMietrendite: number;
++  nettoMietrendite: number;
++  eigenkapitalRendite: number;
++
++  // Cashflow
++  monatlicheEinnahmen: number;
++  monatlicheKosten: number;
++  monatlicheRate: number;
++  monatlicheZinsen: number;
++  monatlicheTilgung: number;
++  monatlicheInstandhaltung: number;
++  monatlicheVerwaltung: number;
++  monatlichNichtUmlagefaehig: number;
++  monatlichMietausfall: number;
++  monatlicheCashflow: number;
++
++  // Jahreszahlen
++  jahreskaltmiete: number;
++  jahreskosten: number;
++  jahreszinsen: number;
++  jahresNettoEinkommen: number;
++
++  // Faktor
++  kaufpreisFaktor: number;
++
++  // Tilgungsplan
++  tilgungsplan: TilgungsplanJahr[];
++
++  // Cashflow-Entwicklung
++  cashflowEntwicklung: CashflowJahr[];
++}
++
++export interface TilgungsplanJahr {
++  jahr: number;
++  anfangsschuld: number;
++  zinsen: number;
++  tilgung: number;
++  gesamtrate: number;
++  restschuld: number;
++}
++
++export interface CashflowJahr {
++  jahr: number;
++  einnahmen: number;
++  kosten: number;
++  zinsen: number;
++  tilgung: number;
++  cashflow: number;
++  kumuliert: number;
++}
++
++export interface SavedCalculation {
++  id: string;
++  user_id: string;
++  name: string;
++  input_data: CalculatorInputs;
++  results: CalculatorResults;
++  created_at: string;
++  updated_at: string;
++}
++
++export type YieldRating = 'excellent' | 'good' | 'ok' | 'weak' | 'bad';
++
++export const BUNDESLAENDER: Record<string, number> = {
++  'Baden-Württemberg': 5.0,
++  'Bayern': 3.5,
++  'Berlin': 6.0,
++  'Brandenburg': 6.5,
++  'Bremen': 5.0,
++  'Hamburg': 5.5,
++  'Hessen': 6.0,
++  'Mecklenburg-Vorpommern': 6.0,
++  'Niedersachsen': 5.0,
++  'Nordrhein-Westfalen': 6.5,
++  'Rheinland-Pfalz': 5.0,
++  'Saarland': 6.5,
++  'Sachsen': 3.5,
++  'Sachsen-Anhalt': 5.0,
++  'Schleswig-Holstein': 6.5,
++  'Thüringen': 6.5,
++};
+diff --git a/src/types/kaution.ts b/src/types/kaution.ts
+new file mode 100644
+index 0000000..69b91a0
+--- /dev/null
++++ b/src/types/kaution.ts
+@@ -0,0 +1,43 @@
++export interface KautionInputs {
++  kaltmiete: number;
++  warmmiete: number | null;
++  vereinbarte_kaution: number;
++  mietbeginn: Date;
++  kautions_art: KautionsArt;
++}
++
++export type KautionsArt = 'sparkonto' | 'buergschaft' | 'sparbuch' | 'barzahlung';
++
++export interface KautionsArtOption {
++  value: KautionsArt;
++  label: string;
++  zinssatz?: number;
++  kosten_prozent?: number;
++  description: string;
++}
++
++export interface Rate {
++  monat: number;
++  betrag: number;
++  faellig: Date;
++}
++
++export interface KautionResults {
++  kaltmiete: number;
++  warmmiete: number | null;
++  max_kaution_betrag: number;
++  kaution_betrag: number;
++  kaution_monate: number;
++  kaution_zu_hoch: boolean;
++  ueberzahlung: number;
++  raten: Rate[];
++  erste_rate: number;
++  kautions_art: KautionsArt;
++  kautions_art_label: string;
++  jaehrliche_zinsen: number;
++  jaehrliche_kosten: number;
++  zinsen_5_jahre: number;
++  kosten_5_jahre: number;
++  empfehlung: string;
++  endwert_5_jahre: number;
++}
+diff --git a/src/types/subscription.ts b/src/types/subscription.ts
+new file mode 100644
+index 0000000..aec5e3a
+--- /dev/null
++++ b/src/types/subscription.ts
+@@ -0,0 +1,82 @@
++export type PlanId = 'free' | 'pro' | 'business';
++
++export type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'trialing' | 'incomplete';
++
++export interface UserSubscription {
++  id: string;
++  user_id: string;
++  stripe_customer_id: string | null;
++  stripe_subscription_id: string | null;
++  app_id: string;
++  plan_id: PlanId;
++  status: SubscriptionStatus;
++  current_period_start: string | null;
++  current_period_end: string | null;
++  cancel_at_period_end: boolean;
++  created_at: string;
++  updated_at: string;
++}
++
++export interface PricingPlan {
++  id: PlanId;
++  name: string;
++  description: string;
++  monthlyPrice: number;
++  yearlyPrice: number;
++  priceIdMonthly: string;
++  priceIdYearly: string;
++  features: string[];
++  highlighted?: boolean;
++}
++
++export const PRICING_PLANS: PricingPlan[] = [
++  {
++    id: 'free',
++    name: 'Free',
++    description: 'Perfekt zum Ausprobieren',
++    monthlyPrice: 0,
++    yearlyPrice: 0,
++    priceIdMonthly: '',
++    priceIdYearly: '',
++    features: [
++      '3 Berechnungen pro Monat',
++      'Basis-Funktionen',
++      'Export als PDF'
++    ]
++  },
++  {
++    id: 'pro',
++    name: 'Pro',
++    description: 'Für aktive Investoren',
++    monthlyPrice: 9.99,
++    yearlyPrice: 95.90,
++    priceIdMonthly: 'price_1SuLli52lqSgjCzekOWV0b2a',
++    priceIdYearly: 'price_1SuLli52lqSgjCze90ODpXch',
++    features: [
++      'Unbegrenzte Berechnungen',
++      'Alle Basis-Funktionen',
++      'Erweiterte Charts',
++      'Excel-Export',
++      'Berechnungen speichern',
++      'Prioritäts-Support'
++    ],
++    highlighted: true
++  },
++  {
++    id: 'business',
++    name: 'Business',
++    description: 'Für professionelle Anwender',
++    monthlyPrice: 29.99,
++    yearlyPrice: 287.90,
++    priceIdMonthly: 'price_1SwLLt52lqSgjCzePeTla42F',
++    priceIdYearly: 'price_1SwLMC52lqSgjCzelkWAWdw8',
++    features: [
++      'Alles aus Pro',
++      'Team-Funktionen',
++      'API-Zugang',
++      'White-Label Berichte',
++      'Dedizierter Support',
++      'Custom Branding'
++    ]
++  }
++];
+-- 
+2.43.0
+

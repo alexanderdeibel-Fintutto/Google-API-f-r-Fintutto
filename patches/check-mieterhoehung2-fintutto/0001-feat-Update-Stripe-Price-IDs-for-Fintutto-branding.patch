@@ -1,0 +1,44 @@
+From 0b61cc5b4be1d9a71ea9e8074348bb0a74c6f2fe Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 5 Feb 2026 16:10:34 +0000
+Subject: [PATCH] feat: Update Stripe Price IDs for Fintutto branding
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Updated Pro plan Price IDs for Mieterhöhungs-Rechner
+
+https://claude.ai/code/session_01Rnm9NzRrSeZfZQdSRGnh1P
+---
+ src/types/subscription.ts | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/types/subscription.ts b/src/types/subscription.ts
+index b82987d..ce8d6a2 100644
+--- a/src/types/subscription.ts
++++ b/src/types/subscription.ts
+@@ -50,8 +50,8 @@ export const PRICING_PLANS: PricingPlan[] = [
+     description: 'Für aktive Investoren',
+     monthlyPrice: 9.99,
+     yearlyPrice: 95.90,
+-    priceIdMonthly: 'price_1SwLDt52lqSgjCzeYslwpr6I',
+-    priceIdYearly: 'price_1SwLLb52lqSgjCze6Gdp9SIz',
++    priceIdMonthly: 'price_1SuLkU52lqSgjCzenGwL6wUW',
++    priceIdYearly: 'price_1SuLkV52lqSgjCzezigYPTl2',
+     features: [
+       'Unbegrenzte Berechnungen',
+       'Alle Basis-Funktionen',
+@@ -68,8 +68,8 @@ export const PRICING_PLANS: PricingPlan[] = [
+     description: 'Für professionelle Anwender',
+     monthlyPrice: 29.99,
+     yearlyPrice: 287.90,
+-    priceIdMonthly: 'price_1SwLLt52lqSgjCzePeTla42F',
+-    priceIdYearly: 'price_1SwLMC52lqSgjCzelkWAWdw8',
++    priceIdMonthly: 'price_1SuLkV52lqSgjCzercBQiYn0',
++    priceIdYearly: 'price_1SuLkV52lqSgjCzercBQiYn0',
+     features: [
+       'Alles aus Pro',
+       'Team-Funktionen',
+-- 
+2.43.0
+
