@@ -1,0 +1,965 @@
+From da1fb50665f61e23662c1e88153ac204ab0f9286 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 6 Feb 2026 15:32:25 +0000
+Subject: [PATCH] feat: Add Credits-based pricing system
+
+- Update PricingPage with 4-tier Credits model (Free/Starter/Pro/Unlimited)
+- Add monthly/yearly billing toggle with 20% discount
+- Create credits.ts with types, constants, and helper functions
+- Add CreditsContext for state management
+- Add CreditsDisplay component for header
+- Update Header with Credits display and proper routing
+- Add /preise route alias for German URL
+---
+ apps/vermieter-portal/src/App.tsx             |  68 ++---
+ .../src/components/CreditsDisplay.tsx         | 120 ++++++++
+ .../src/components/layout/Header.tsx          |  12 +-
+ .../src/contexts/CreditsContext.tsx           | 164 +++++++++++
+ apps/vermieter-portal/src/lib/credits.ts      | 163 +++++++++++
+ .../src/pages/PricingPage.tsx                 | 257 ++++++++++++++----
+ 6 files changed, 700 insertions(+), 84 deletions(-)
+ create mode 100644 apps/vermieter-portal/src/components/CreditsDisplay.tsx
+ create mode 100644 apps/vermieter-portal/src/contexts/CreditsContext.tsx
+ create mode 100644 apps/vermieter-portal/src/lib/credits.ts
+
+diff --git a/apps/vermieter-portal/src/App.tsx b/apps/vermieter-portal/src/App.tsx
+index 4f644dc..18c998c 100644
+--- a/apps/vermieter-portal/src/App.tsx
++++ b/apps/vermieter-portal/src/App.tsx
+@@ -1,5 +1,6 @@
+ import { BrowserRouter, Routes, Route } from 'react-router-dom'
+ import { Toaster } from './components/ui/toaster'
++import { CreditsProvider } from './contexts/CreditsContext'
+ import Layout from './components/layout/Layout'
+ import HomePage from './pages/HomePage'
+ import RechnerPage from './pages/RechnerPage'
+@@ -25,38 +26,41 @@ import BetriebskostenFormular from './pages/formulare/BetriebskostenFormular'
+ 
+ function App() {
+   return (
+-    <BrowserRouter>
+-      <Routes>
+-        <Route path="/" element={<Layout />}>
+-          <Route index element={<HomePage />} />
+-
+-          {/* Rechner Overview */}
+-          <Route path="rechner" element={<RechnerPage />} />
+-          <Route path="rechner/kaution" element={<KautionsRechner />} />
+-          <Route path="rechner/mieterhoehung" element={<MieterhoehungsRechner />} />
+-          <Route path="rechner/kaufnebenkosten" element={<KaufnebenkostenRechner />} />
+-          <Route path="rechner/eigenkapital" element={<EigenkapitalRechner />} />
+-          <Route path="rechner/grundsteuer" element={<GrundsteuerRechner />} />
+-          <Route path="rechner/rendite" element={<RenditeRechner />} />
+-          <Route path="rechner/nebenkosten" element={<NebenkostenRechner />} />
+-
+-          {/* Formulare Overview */}
+-          <Route path="formulare" element={<FormularePage />} />
+-          <Route path="formulare/mietvertrag" element={<MietvertragFormular />} />
+-          <Route path="formulare/uebergabeprotokoll" element={<UebergabeprotokollFormular />} />
+-          <Route path="formulare/mieterhoehung" element={<MieterhoehungFormular />} />
+-          <Route path="formulare/selbstauskunft" element={<SelbstauskunftFormular />} />
+-          <Route path="formulare/betriebskosten" element={<BetriebskostenFormular />} />
+-
+-          {/* Pricing */}
+-          <Route path="pricing" element={<PricingPage />} />
+-
+-          {/* 404 */}
+-          <Route path="*" element={<NotFoundPage />} />
+-        </Route>
+-      </Routes>
+-      <Toaster />
+-    </BrowserRouter>
++    <CreditsProvider>
++      <BrowserRouter>
++        <Routes>
++          <Route path="/" element={<Layout />}>
++            <Route index element={<HomePage />} />
++
++            {/* Rechner Overview */}
++            <Route path="rechner" element={<RechnerPage />} />
++            <Route path="rechner/kaution" element={<KautionsRechner />} />
++            <Route path="rechner/mieterhoehung" element={<MieterhoehungsRechner />} />
++            <Route path="rechner/kaufnebenkosten" element={<KaufnebenkostenRechner />} />
++            <Route path="rechner/eigenkapital" element={<EigenkapitalRechner />} />
++            <Route path="rechner/grundsteuer" element={<GrundsteuerRechner />} />
++            <Route path="rechner/rendite" element={<RenditeRechner />} />
++            <Route path="rechner/nebenkosten" element={<NebenkostenRechner />} />
++
++            {/* Formulare Overview */}
++            <Route path="formulare" element={<FormularePage />} />
++            <Route path="formulare/mietvertrag" element={<MietvertragFormular />} />
++            <Route path="formulare/uebergabeprotokoll" element={<UebergabeprotokollFormular />} />
++            <Route path="formulare/mieterhoehung" element={<MieterhoehungFormular />} />
++            <Route path="formulare/selbstauskunft" element={<SelbstauskunftFormular />} />
++            <Route path="formulare/betriebskosten" element={<BetriebskostenFormular />} />
++
++            {/* Pricing */}
++            <Route path="preise" element={<PricingPage />} />
++            <Route path="pricing" element={<PricingPage />} />
++
++            {/* 404 */}
++            <Route path="*" element={<NotFoundPage />} />
++          </Route>
++        </Routes>
++        <Toaster />
++      </BrowserRouter>
++    </CreditsProvider>
+   )
+ }
+ 
+diff --git a/apps/vermieter-portal/src/components/CreditsDisplay.tsx b/apps/vermieter-portal/src/components/CreditsDisplay.tsx
+new file mode 100644
+index 0000000..92e8850
+--- /dev/null
++++ b/apps/vermieter-portal/src/components/CreditsDisplay.tsx
+@@ -0,0 +1,120 @@
++import { Link } from 'react-router-dom'
++import { Coins, ChevronRight } from 'lucide-react'
++import { useCredits } from '../contexts/CreditsContext'
++import { PLANS, formatCreditsDisplay } from '../lib/credits'
++
++export function CreditsDisplay() {
++  const { credits, isLoading } = useCredits()
++
++  if (isLoading) {
++    return (
++      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted animate-pulse">
++        <Coins className="h-4 w-4" />
++        <span className="text-sm">...</span>
++      </div>
++    )
++  }
++
++  if (!credits) {
++    return (
++      <Link
++        to="/anmelden"
++        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
++      >
++        <Coins className="h-4 w-4 text-primary" />
++        <span className="text-sm font-medium">Anmelden</span>
++      </Link>
++    )
++  }
++
++  const plan = PLANS[credits.plan]
++  const isUnlimited = plan.monthlyCredits === -1
++  const creditsDisplay = formatCreditsDisplay(credits.creditsRemaining)
++  const maxCredits = formatCreditsDisplay(plan.monthlyCredits)
++
++  // Calculate percentage for the progress indicator
++  const percentage = isUnlimited ? 100 : (credits.creditsRemaining / plan.monthlyCredits) * 100
++  const isLow = !isUnlimited && percentage < 30
++
++  return (
++    <Link
++      to="/preise"
++      className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors ${
++        isLow ? 'bg-destructive/10 hover:bg-destructive/20' : 'bg-primary/10 hover:bg-primary/20'
++      }`}
++    >
++      <div className="relative">
++        <Coins className={`h-4 w-4 ${isLow ? 'text-destructive' : 'text-primary'}`} />
++        {isLow && (
++          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
++        )}
++      </div>
++      <span className={`text-sm font-medium ${isLow ? 'text-destructive' : ''}`}>
++        {creditsDisplay}
++        {!isUnlimited && <span className="text-muted-foreground">/{maxCredits}</span>}
++      </span>
++      <ChevronRight className="h-3 w-3 text-muted-foreground" />
++    </Link>
++  )
++}
++
++export function CreditsCard() {
++  const { credits, isLoading } = useCredits()
++
++  if (isLoading || !credits) return null
++
++  const plan = PLANS[credits.plan]
++  const isUnlimited = plan.monthlyCredits === -1
++  const percentage = isUnlimited ? 100 : (credits.creditsRemaining / plan.monthlyCredits) * 100
++
++  return (
++    <div className="bg-card rounded-xl border p-4">
++      <div className="flex items-center justify-between mb-3">
++        <div className="flex items-center gap-2">
++          <Coins className="h-5 w-5 text-primary" />
++          <span className="font-semibold">Deine Credits</span>
++        </div>
++        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
++          {plan.name}
++        </span>
++      </div>
++
++      <div className="text-3xl font-bold mb-2">
++        {formatCreditsDisplay(credits.creditsRemaining)}
++        {!isUnlimited && (
++          <span className="text-lg text-muted-foreground font-normal">
++            {' '}/ {plan.monthlyCredits}
++          </span>
++        )}
++      </div>
++
++      {!isUnlimited && (
++        <div className="mb-3">
++          <div className="h-2 bg-muted rounded-full overflow-hidden">
++            <div
++              className={`h-full rounded-full transition-all ${
++                percentage < 30 ? 'bg-destructive' : 'bg-primary'
++              }`}
++              style={{ width: `${percentage}%` }}
++            />
++          </div>
++        </div>
++      )}
++
++      <p className="text-xs text-muted-foreground">
++        {isUnlimited
++          ? 'Unbegrenzte Credits verfügbar'
++          : `Erneuert am ${credits.periodEnd.toLocaleDateString('de-DE')}`}
++      </p>
++
++      {plan.id !== 'unlimited' && (
++        <Link
++          to="/preise"
++          className="mt-3 block text-center text-sm text-primary hover:underline"
++        >
++          Upgrade für mehr Credits →
++        </Link>
++      )}
++    </div>
++  )
++}
+diff --git a/apps/vermieter-portal/src/components/layout/Header.tsx b/apps/vermieter-portal/src/components/layout/Header.tsx
+index e3e2610..e36ffe4 100644
+--- a/apps/vermieter-portal/src/components/layout/Header.tsx
++++ b/apps/vermieter-portal/src/components/layout/Header.tsx
+@@ -2,11 +2,12 @@ import { Link, useLocation } from 'react-router-dom'
+ import { Building2, Calculator, FileText, Menu, X } from 'lucide-react'
+ import { useState } from 'react'
+ import { Button } from '../ui/button'
++import { CreditsDisplay } from '../CreditsDisplay'
+ 
+ const navigation = [
+   { name: 'Rechner', href: '/rechner', icon: Calculator },
+   { name: 'Formulare', href: '/formulare', icon: FileText },
+-  { name: 'Preise', href: '/pricing', icon: null },
++  { name: 'Preise', href: '/preise', icon: null },
+ ]
+ 
+ export default function Header() {
+@@ -45,11 +46,12 @@ export default function Header() {
+ 
+         {/* CTA Buttons */}
+         <div className="hidden md:flex items-center gap-3">
+-          <Button variant="ghost" size="sm">
+-            Anmelden
++          <CreditsDisplay />
++          <Button variant="ghost" size="sm" asChild>
++            <Link to="/anmelden">Anmelden</Link>
+           </Button>
+-          <Button size="sm" className="gradient-vermieter text-white border-0">
+-            Kostenlos starten
++          <Button size="sm" className="gradient-vermieter text-white border-0" asChild>
++            <Link to="/registrieren">Kostenlos starten</Link>
+           </Button>
+         </div>
+ 
+diff --git a/apps/vermieter-portal/src/contexts/CreditsContext.tsx b/apps/vermieter-portal/src/contexts/CreditsContext.tsx
+new file mode 100644
+index 0000000..53f49f7
+--- /dev/null
++++ b/apps/vermieter-portal/src/contexts/CreditsContext.tsx
+@@ -0,0 +1,164 @@
++import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
++import {
++  UserCredits,
++  PlanType,
++  PLANS,
++  ActionType,
++  canPerformAction,
++  canUseAI,
++  CREDIT_COSTS,
++} from '../lib/credits'
++
++interface CreditsContextType {
++  credits: UserCredits | null
++  isLoading: boolean
++  checkAction: (actionType: ActionType, includePdf?: boolean) => { allowed: boolean; reason?: string; cost: number }
++  useCredits: (actionType: ActionType, includePdf?: boolean) => Promise<boolean>
++  checkAI: () => { allowed: boolean; reason?: string }
++  useAIMessage: () => Promise<boolean>
++  refreshCredits: () => Promise<void>
++}
++
++const CreditsContext = createContext<CreditsContextType | undefined>(undefined)
++
++// Mock user credits for development - will be replaced with Supabase
++function getMockUserCredits(): UserCredits {
++  const now = new Date()
++  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
++  const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
++
++  return {
++    userId: 'mock-user-id',
++    plan: 'free',
++    creditsRemaining: 3,
++    aiMessagesRemaining: 0,
++    periodStart,
++    periodEnd,
++  }
++}
++
++export function CreditsProvider({ children }: { children: ReactNode }) {
++  const [credits, setCredits] = useState<UserCredits | null>(null)
++  const [isLoading, setIsLoading] = useState(true)
++
++  useEffect(() => {
++    // Load credits on mount
++    loadCredits()
++  }, [])
++
++  async function loadCredits() {
++    setIsLoading(true)
++    try {
++      // TODO: Replace with Supabase query
++      // const { data, error } = await supabase
++      //   .from('user_credits')
++      //   .select('*')
++      //   .eq('user_id', userId)
++      //   .single()
++
++      // For now, use mock data
++      const mockCredits = getMockUserCredits()
++      setCredits(mockCredits)
++    } catch (error) {
++      console.error('Failed to load credits:', error)
++    } finally {
++      setIsLoading(false)
++    }
++  }
++
++  async function refreshCredits() {
++    await loadCredits()
++  }
++
++  function checkAction(actionType: ActionType, includePdf: boolean = false) {
++    if (!credits) {
++      return { allowed: false, reason: 'Bitte melde dich an.', cost: CREDIT_COSTS[actionType] }
++    }
++    return canPerformAction(credits, actionType, includePdf)
++  }
++
++  async function useCredits(actionType: ActionType, includePdf: boolean = false): Promise<boolean> {
++    if (!credits) return false
++
++    const check = canPerformAction(credits, actionType, includePdf)
++    if (!check.allowed) return false
++
++    // Update local state
++    setCredits((prev) => {
++      if (!prev) return prev
++      const plan = PLANS[prev.plan]
++      if (plan.monthlyCredits === -1) return prev // Unlimited
++
++      return {
++        ...prev,
++        creditsRemaining: prev.creditsRemaining - check.cost,
++      }
++    })
++
++    // TODO: Update in Supabase
++    // await supabase
++    //   .from('user_credits')
++    //   .update({ credits_remaining: credits.creditsRemaining - check.cost })
++    //   .eq('user_id', credits.userId)
++
++    return true
++  }
++
++  function checkAI() {
++    if (!credits) {
++      return { allowed: false, reason: 'Bitte melde dich an.' }
++    }
++    return canUseAI(credits)
++  }
++
++  async function useAIMessage(): Promise<boolean> {
++    if (!credits) return false
++
++    const check = canUseAI(credits)
++    if (!check.allowed) return false
++
++    const plan = PLANS[credits.plan]
++    if (plan.aiMessages === -1) return true // Unlimited
++
++    // Update local state
++    setCredits((prev) => {
++      if (!prev) return prev
++      return {
++        ...prev,
++        aiMessagesRemaining: prev.aiMessagesRemaining - 1,
++      }
++    })
++
++    // TODO: Update in Supabase
++    // await supabase
++    //   .from('user_credits')
++    //   .update({ ai_messages_remaining: credits.aiMessagesRemaining - 1 })
++    //   .eq('user_id', credits.userId)
++
++    return true
++  }
++
++  return (
++    <CreditsContext.Provider
++      value={{
++        credits,
++        isLoading,
++        checkAction,
++        useCredits,
++        checkAI,
++        useAIMessage,
++        refreshCredits,
++      }}
++    >
++      {children}
++    </CreditsContext.Provider>
++  )
++}
++
++export function useCredits() {
++  const context = useContext(CreditsContext)
++  if (context === undefined) {
++    throw new Error('useCredits must be used within a CreditsProvider')
++  }
++  return context
++}
+diff --git a/apps/vermieter-portal/src/lib/credits.ts b/apps/vermieter-portal/src/lib/credits.ts
+new file mode 100644
+index 0000000..f90e413
+--- /dev/null
++++ b/apps/vermieter-portal/src/lib/credits.ts
+@@ -0,0 +1,163 @@
++// Credits System Types and Constants for Fintutto Vermieter-Portal
++
++export type PlanType = 'free' | 'starter' | 'pro' | 'unlimited'
++
++export interface Plan {
++  id: PlanType
++  name: string
++  price: number // in cents
++  yearlyPrice: number // in cents
++  monthlyCredits: number // -1 for unlimited
++  canSave: boolean
++  aiMessages: number // -1 for unlimited, 0 for none
++  stripePriceIdMonthly?: string
++  stripePriceIdYearly?: string
++}
++
++export const PLANS: Record<PlanType, Plan> = {
++  free: {
++    id: 'free',
++    name: 'Free',
++    price: 0,
++    yearlyPrice: 0,
++    monthlyCredits: 3,
++    canSave: false,
++    aiMessages: 0,
++  },
++  starter: {
++    id: 'starter',
++    name: 'Starter',
++    price: 299, // 2.99€
++    yearlyPrice: 2870, // 28.70€
++    monthlyCredits: 10,
++    canSave: true,
++    aiMessages: 0,
++    stripePriceIdMonthly: 'price_vermieter_starter_monthly',
++    stripePriceIdYearly: 'price_vermieter_starter_yearly',
++  },
++  pro: {
++    id: 'pro',
++    name: 'Pro',
++    price: 799, // 7.99€
++    yearlyPrice: 7670, // 76.70€
++    monthlyCredits: 30,
++    canSave: true,
++    aiMessages: 50,
++    stripePriceIdMonthly: 'price_vermieter_pro_monthly',
++    stripePriceIdYearly: 'price_vermieter_pro_yearly',
++  },
++  unlimited: {
++    id: 'unlimited',
++    name: 'Unlimited',
++    price: 1499, // 14.99€
++    yearlyPrice: 14390, // 143.90€
++    monthlyCredits: -1, // unlimited
++    canSave: true,
++    aiMessages: -1, // unlimited
++    stripePriceIdMonthly: 'price_vermieter_unlimited_monthly',
++    stripePriceIdYearly: 'price_vermieter_unlimited_yearly',
++  },
++}
++
++// Credit costs for different actions
++export type ActionType =
++  | 'simple_calculator'
++  | 'standard_document'
++  | 'premium_document'
++  | 'pdf_export'
++
++export const CREDIT_COSTS: Record<ActionType, number> = {
++  simple_calculator: 1,
++  standard_document: 2,
++  premium_document: 3,
++  pdf_export: 1,
++}
++
++// Mapping of tools to their action types
++export const TOOL_ACTION_MAP: Record<string, ActionType> = {
++  // Calculators (all simple)
++  'kautions-rechner': 'simple_calculator',
++  'mieterhoehungs-rechner': 'simple_calculator',
++  'kaufnebenkosten-rechner': 'simple_calculator',
++  'eigenkapital-rechner': 'simple_calculator',
++  'grundsteuer-rechner': 'simple_calculator',
++  'rendite-rechner': 'simple_calculator',
++  'nebenkosten-rechner': 'simple_calculator',
++
++  // Standard documents
++  'nebenkostenabrechnung': 'standard_document',
++  'uebergabeprotokoll': 'standard_document',
++  'zahlungserinnerung': 'standard_document',
++
++  // Premium documents
++  'mietvertrag': 'premium_document',
++  'kuendigungsschreiben': 'premium_document',
++  'mieterhoehung-schreiben': 'premium_document',
++}
++
++export interface UserCredits {
++  userId: string
++  plan: PlanType
++  creditsRemaining: number
++  aiMessagesRemaining: number
++  periodStart: Date
++  periodEnd: Date
++}
++
++export function canPerformAction(
++  userCredits: UserCredits,
++  actionType: ActionType,
++  includePdfExport: boolean = false
++): { allowed: boolean; reason?: string; cost: number } {
++  const plan = PLANS[userCredits.plan]
++
++  // Unlimited plan always allowed
++  if (plan.monthlyCredits === -1) {
++    return { allowed: true, cost: 0 }
++  }
++
++  let totalCost = CREDIT_COSTS[actionType]
++  if (includePdfExport) {
++    totalCost += CREDIT_COSTS.pdf_export
++  }
++
++  if (userCredits.creditsRemaining >= totalCost) {
++    return { allowed: true, cost: totalCost }
++  }
++
++  return {
++    allowed: false,
++    reason: `Du benötigst ${totalCost} Credits, hast aber nur ${userCredits.creditsRemaining} übrig.`,
++    cost: totalCost,
++  }
++}
++
++export function canUseAI(userCredits: UserCredits): { allowed: boolean; reason?: string } {
++  const plan = PLANS[userCredits.plan]
++
++  if (plan.aiMessages === 0) {
++    return {
++      allowed: false,
++      reason: 'Der KI-Assistent ist nur in Pro und Unlimited verfügbar.',
++    }
++  }
++
++  // Unlimited AI
++  if (plan.aiMessages === -1) {
++    return { allowed: true }
++  }
++
++  if (userCredits.aiMessagesRemaining > 0) {
++    return { allowed: true }
++  }
++
++  return {
++    allowed: false,
++    reason: `Du hast dein Limit von ${plan.aiMessages} KI-Nachrichten diesen Monat erreicht.`,
++  }
++}
++
++export function formatCreditsDisplay(credits: number): string {
++  if (credits === -1) return '∞'
++  return credits.toString()
++}
+diff --git a/apps/vermieter-portal/src/pages/PricingPage.tsx b/apps/vermieter-portal/src/pages/PricingPage.tsx
+index a7e3300..9ffe5d7 100644
+--- a/apps/vermieter-portal/src/pages/PricingPage.tsx
++++ b/apps/vermieter-portal/src/pages/PricingPage.tsx
+@@ -1,87 +1,169 @@
+-import { CheckCircle2 } from 'lucide-react'
++import { useState } from 'react'
++import { CheckCircle2, XCircle, Coins, Calculator, FileText, Sparkles, Zap, MessageSquare } from 'lucide-react'
+ import { Button } from '../components/ui/button'
+ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+ 
+ const plans = [
+   {
+     name: 'Free',
+-    description: 'Für Einsteiger',
++    description: 'Zum Ausprobieren',
+     price: '0',
+     period: 'für immer',
++    credits: 3,
+     features: [
+-      'Alle Rechner unbegrenzt',
+-      'Alle Formulare nutzen',
+-      'PDF-Export (mit Wasserzeichen)',
+-      'E-Mail Support',
++      { text: '3 Credits pro Monat', included: true, highlight: true },
++      { text: 'Alle Rechner verfügbar', included: true },
++      { text: 'Alle Formulare verfügbar', included: true },
++      { text: 'PDF-Export (mit Wasserzeichen)', included: true },
++      { text: 'Berechnungen speichern', included: false },
++      { text: 'KI-Assistent', included: false },
+     ],
+     cta: 'Kostenlos starten',
+     popular: false,
+   },
++  {
++    name: 'Starter',
++    description: 'Für gelegentliche Nutzung',
++    price: '2,99',
++    period: 'pro Monat',
++    yearlyPrice: '28,70',
++    credits: 10,
++    features: [
++      { text: '10 Credits pro Monat', included: true, highlight: true },
++      { text: 'Alle Rechner verfügbar', included: true },
++      { text: 'Alle Formulare verfügbar', included: true },
++      { text: 'PDF-Export ohne Wasserzeichen', included: true },
++      { text: 'Berechnungen speichern', included: true },
++      { text: 'KI-Assistent', included: false },
++    ],
++    cta: 'Starter wählen',
++    popular: false,
++  },
+   {
+     name: 'Pro',
+     description: 'Für aktive Vermieter',
+-    price: '9,99',
++    price: '7,99',
+     period: 'pro Monat',
+-    yearlyPrice: '95,90',
++    yearlyPrice: '76,70',
++    credits: 30,
+     features: [
+-      'Alles aus Free',
+-      'PDF-Export ohne Wasserzeichen',
+-      'Berechnungen speichern',
+-      'Formulare archivieren',
+-      'Prioritäts-Support',
+-      'Automatische Updates',
++      { text: '30 Credits pro Monat', included: true, highlight: true },
++      { text: 'Alle Rechner verfügbar', included: true },
++      { text: 'Alle Formulare verfügbar', included: true },
++      { text: 'PDF-Export ohne Wasserzeichen', included: true },
++      { text: 'Berechnungen speichern', included: true },
++      { text: 'KI-Assistent (50 Nachrichten/Monat)', included: true },
+     ],
+     cta: 'Pro werden',
+     popular: true,
+   },
+   {
+-    name: 'Business',
+-    description: 'Für Hausverwaltungen',
+-    price: '29,99',
++    name: 'Unlimited',
++    description: 'Für Profis & Hausverwaltungen',
++    price: '14,99',
+     period: 'pro Monat',
+-    yearlyPrice: '287,90',
++    yearlyPrice: '143,90',
++    credits: -1, // unlimited
+     features: [
+-      'Alles aus Pro',
+-      'Mehrere Objekte verwalten',
+-      'Team-Zugang (5 Nutzer)',
+-      'API-Zugang',
+-      'Eigenes Branding',
+-      'Dedizierter Support',
++      { text: 'Unbegrenzte Credits', included: true, highlight: true },
++      { text: 'Alle Rechner verfügbar', included: true },
++      { text: 'Alle Formulare verfügbar', included: true },
++      { text: 'PDF-Export ohne Wasserzeichen', included: true },
++      { text: 'Berechnungen speichern', included: true },
++      { text: 'KI-Assistent (unbegrenzt)', included: true },
+     ],
+-    cta: 'Kontakt aufnehmen',
++    cta: 'Unlimited wählen',
+     popular: false,
+   },
+ ]
+ 
++const creditCosts = [
++  { icon: Calculator, name: 'Einfache Rechner', description: 'Kaution, Mieterhöhung, etc.', cost: 1 },
++  { icon: FileText, name: 'Standard Dokumente', description: 'Nebenkostenabrechnung, Protokolle', cost: 2 },
++  { icon: Sparkles, name: 'Premium Dokumente', description: 'Rechtssichere Verträge & Schreiben', cost: 3 },
++  { icon: Zap, name: 'PDF-Export', description: 'Zusatz zu jeder Berechnung/Dokument', cost: 1 },
++]
++
+ export default function PricingPage() {
++  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
++
+   return (
+     <div>
+       {/* Hero */}
+       <section className="gradient-vermieter py-16">
+         <div className="container text-center">
+           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
+-            Einfache, transparente Preise
++            Einfaches Credit-System
+           </h1>
+-          <p className="text-lg text-white/80 max-w-2xl mx-auto">
+-            Starte kostenlos und upgrade wenn du mehr brauchst.
+-            Keine versteckten Kosten.
++          <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8">
++            Zahle nur für das, was du nutzt. Kaufe Credits und setze sie flexibel ein.
+           </p>
++
++          {/* Billing Toggle */}
++          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur rounded-full p-1">
++            <button
++              onClick={() => setBillingPeriod('monthly')}
++              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
++                billingPeriod === 'monthly'
++                  ? 'bg-white text-primary'
++                  : 'text-white hover:bg-white/10'
++              }`}
++            >
++              Monatlich
++            </button>
++            <button
++              onClick={() => setBillingPeriod('yearly')}
++              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
++                billingPeriod === 'yearly'
++                  ? 'bg-white text-primary'
++                  : 'text-white hover:bg-white/10'
++              }`}
++            >
++              Jährlich
++              <span className="ml-1 text-xs bg-success text-white px-2 py-0.5 rounded-full">
++                -20%
++              </span>
++            </button>
++          </div>
++        </div>
++      </section>
++
++      {/* Credit Costs Info */}
++      <section className="py-8 bg-muted/30">
++        <div className="container">
++          <div className="flex flex-wrap justify-center gap-6">
++            {creditCosts.map((item) => (
++              <div key={item.name} className="flex items-center gap-3 bg-card px-4 py-3 rounded-xl border">
++                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
++                  <item.icon className="h-5 w-5 text-primary" />
++                </div>
++                <div>
++                  <p className="font-medium text-sm">{item.name}</p>
++                  <p className="text-xs text-muted-foreground">{item.description}</p>
++                </div>
++                <div className="flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-full">
++                  <Coins className="h-4 w-4 text-primary" />
++                  <span className="font-semibold text-primary">{item.cost}</span>
++                </div>
++              </div>
++            ))}
++          </div>
+         </div>
+       </section>
+ 
+       {/* Pricing Cards */}
+       <section className="py-12">
+         <div className="container">
+-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
++          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+             {plans.map((plan) => (
+               <Card
+                 key={plan.name}
+-                className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105' : ''}`}
++                className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105 z-10' : ''}`}
+               >
+                 {plan.popular && (
+                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                     <span className="gradient-vermieter text-white text-xs font-medium px-4 py-1 rounded-full">
+-                      Empfohlen
++                      Beliebteste Wahl
+                     </span>
+                   </div>
+                 )}
+@@ -90,21 +172,41 @@ export default function PricingPage() {
+                   <CardDescription>{plan.description}</CardDescription>
+                 </CardHeader>
+                 <CardContent className="text-center">
+-                  <div className="mb-6">
+-                    <span className="text-4xl font-bold">{plan.price}€</span>
+-                    <span className="text-muted-foreground">/{plan.period}</span>
+-                    {plan.yearlyPrice && (
+-                      <p className="text-sm text-muted-foreground mt-1">
+-                        oder {plan.yearlyPrice}€/Jahr (2 Monate gratis)
++                  <div className="mb-4">
++                    <span className="text-4xl font-bold">
++                      {billingPeriod === 'yearly' && plan.yearlyPrice
++                        ? (parseFloat(plan.yearlyPrice.replace(',', '.')) / 12).toFixed(2).replace('.', ',')
++                        : plan.price}€
++                    </span>
++                    <span className="text-muted-foreground">/Monat</span>
++                    {billingPeriod === 'yearly' && plan.yearlyPrice && (
++                      <p className="text-xs text-muted-foreground mt-1">
++                        {plan.yearlyPrice}€ jährlich abgerechnet
+                       </p>
+                     )}
+                   </div>
+ 
++                  {/* Credits Badge */}
++                  <div className="mb-6 flex justify-center">
++                    <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full">
++                      <Coins className="h-5 w-5 text-primary" />
++                      <span className="font-semibold text-primary">
++                        {plan.credits === -1 ? '∞ Unbegrenzt' : `${plan.credits} Credits/Monat`}
++                      </span>
++                    </div>
++                  </div>
++
+                   <ul className="space-y-3 mb-6 text-left">
+                     {plan.features.map((feature) => (
+-                      <li key={feature} className="flex items-start gap-2 text-sm">
+-                        <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
+-                        <span>{feature}</span>
++                      <li key={feature.text} className="flex items-start gap-2 text-sm">
++                        {feature.included ? (
++                          <CheckCircle2 className={`h-5 w-5 shrink-0 mt-0.5 ${feature.highlight ? 'text-primary' : 'text-success'}`} />
++                        ) : (
++                          <XCircle className="h-5 w-5 text-muted-foreground/50 shrink-0 mt-0.5" />
++                        )}
++                        <span className={feature.included ? '' : 'text-muted-foreground'}>
++                          {feature.text}
++                        </span>
+                       </li>
+                     ))}
+                   </ul>
+@@ -122,11 +224,72 @@ export default function PricingPage() {
+         </div>
+       </section>
+ 
+-      {/* FAQ */}
++      {/* How Credits Work */}
+       <section className="py-12 bg-muted/30">
++        <div className="container max-w-4xl">
++          <h2 className="text-2xl font-bold text-center mb-8">So funktionieren Credits</h2>
++
++          <div className="grid md:grid-cols-3 gap-6 mb-12">
++            <div className="text-center">
++              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mx-auto mb-4">
++                <span className="text-xl font-bold text-primary">1</span>
++              </div>
++              <h3 className="font-semibold mb-2">Plan wählen</h3>
++              <p className="text-sm text-muted-foreground">
++                Wähle einen Plan mit Credits, die zu deinem Bedarf passen.
++              </p>
++            </div>
++            <div className="text-center">
++              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mx-auto mb-4">
++                <span className="text-xl font-bold text-primary">2</span>
++              </div>
++              <h3 className="font-semibold mb-2">Credits nutzen</h3>
++              <p className="text-sm text-muted-foreground">
++                Jede Berechnung oder jedes Dokument kostet 1-3 Credits.
++              </p>
++            </div>
++            <div className="text-center">
++              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mx-auto mb-4">
++                <span className="text-xl font-bold text-primary">3</span>
++              </div>
++              <h3 className="font-semibold mb-2">Monatlich erneuern</h3>
++              <p className="text-sm text-muted-foreground">
++                Credits werden jeden Monat aufgefüllt. Ungenutzte verfallen.
++              </p>
++            </div>
++          </div>
++
++          <Card className="border-primary/30">
++            <CardContent className="pt-6">
++              <div className="flex items-start gap-4">
++                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
++                  <MessageSquare className="h-5 w-5 text-primary" />
++                </div>
++                <div>
++                  <h3 className="font-semibold mb-1">KI-Assistent</h3>
++                  <p className="text-sm text-muted-foreground">
++                    Pro-Nutzer erhalten 50 KI-Nachrichten pro Monat, Unlimited-Nutzer unbegrenzt.
++                    Der Assistent hilft bei Fragen zu Mietrecht, Berechnungen und Dokumenten.
++                  </p>
++                </div>
++              </div>
++            </CardContent>
++          </Card>
++        </div>
++      </section>
++
++      {/* FAQ */}
++      <section className="py-12">
+         <div className="container max-w-3xl">
+           <h2 className="text-2xl font-bold text-center mb-8">Häufige Fragen</h2>
+           <div className="space-y-4">
++            <div className="bg-card p-6 rounded-xl border">
++              <h3 className="font-semibold mb-2">Was passiert, wenn meine Credits aufgebraucht sind?</h3>
++              <p className="text-muted-foreground text-sm">
++                Du kannst jederzeit auf einen höheren Plan upgraden. Alternativ warte bis zum nächsten Monat,
++                wenn deine Credits wieder aufgefüllt werden.
++              </p>
++            </div>
+             <div className="bg-card p-6 rounded-xl border">
+               <h3 className="font-semibold mb-2">Kann ich jederzeit kündigen?</h3>
+               <p className="text-muted-foreground text-sm">
+@@ -135,16 +298,16 @@ export default function PricingPage() {
+               </p>
+             </div>
+             <div className="bg-card p-6 rounded-xl border">
+-              <h3 className="font-semibold mb-2">Welche Zahlungsmethoden werden akzeptiert?</h3>
++              <h3 className="font-semibold mb-2">Werden ungenutzte Credits übertragen?</h3>
+               <p className="text-muted-foreground text-sm">
+-                Wir akzeptieren alle gängigen Kreditkarten, SEPA-Lastschrift und PayPal.
++                Nein, Credits verfallen am Ende jedes Abrechnungszeitraums und werden neu aufgefüllt.
++                Wähle einen Plan, der zu deiner tatsächlichen Nutzung passt.
+               </p>
+             </div>
+             <div className="bg-card p-6 rounded-xl border">
+-              <h3 className="font-semibold mb-2">Gibt es eine Testphase?</h3>
++              <h3 className="font-semibold mb-2">Welche Zahlungsmethoden werden akzeptiert?</h3>
+               <p className="text-muted-foreground text-sm">
+-                Der Free-Plan ist dauerhaft kostenlos. Du kannst alle Rechner und Formulare
+-                ohne Einschränkungen nutzen, nur der PDF-Export hat ein Wasserzeichen.
++                Wir akzeptieren alle gängigen Kreditkarten, SEPA-Lastschrift und PayPal.
+               </p>
+             </div>
+           </div>
+-- 
+2.43.0
+
